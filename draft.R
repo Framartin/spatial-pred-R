@@ -3,17 +3,20 @@
 # in-sample
 if (power){
    W <- as(listw, "CsparseMatrix")
-   TC <- powerWeights(W, rho = rho, X = X, order = order, tol = tol) %*% B
+   TC <- powerWeights(W, rho = object$rho, X = X, order = order, tol = tol) %*% B
 } else {
-   TC <- invIrW(listw, rho) %*% X %*% B
+   TC <- invIrW(listw, object$rho) %*% trend #X %*% B
 }
 
 W <- as(listw, "CsparseMatrix")
-Qs <- 1/object$s2 * (as(diag(dim(W)[1]), "CsparseMatrix") - (rho * t(W))) %*% (as(diag(dim(W)[1]), "CsparseMatrix") - (rho * W)) # precision matrix for LAG model # TODO : change to more appropriate type of Matrix: diagonalMatrix?
-BP <- TC - solve(as(diag(diag(Qs)), "CsparseMatrix")) %*% (Qs - diag(Qs)) %*% (y - TC) # TODO : change to more appropriate type of Matrix: diagonalMatrix?
+Qss <- 1/object$s2 * (as(diag(dim(W)[1]), "CsparseMatrix") - (object$rho * t(W))) %*% (as(diag(dim(W)[1]), "CsparseMatrix") - (object$rho * W)) # precision matrix for LAG model # TODO : change to more appropriate type of Matrix: diagonalMatrix?
+DiagQss = as(diag(diag(Qss)), "CsparseMatrix") # TODO : change to more appropriate type of Matrix: diagonalMatrix?
+BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (y - TC)
+# Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
 
 W <- as(listw, "CsparseMatrix")
-TS <- X %*% B + rho * W %*% y
+TS <- trend + object$rho * W %*% y
+
 
 # out-of-sample
 
