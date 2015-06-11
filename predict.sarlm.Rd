@@ -13,7 +13,7 @@ model objects, using Haining's terminology for decomposition into
 trend, signal, and noise --- see reference.
 }
 \usage{
-\method{predict}{sarlm}(object, newdata = NULL, listw = NULL,
+\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type=NULL,
  zero.policy = NULL, legacy=TRUE, power=NULL, order=250,
  tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
  ...)
@@ -27,6 +27,8 @@ trend, signal, and noise --- see reference.
   \item{newdata}{Data frame in which to predict --- if NULL, predictions are
 for the data on which the model was fitted}
   \item{listw}{a \code{listw} object created for example by \code{nb2listw}}
+  \item{type}{default NULL, use decomposition into
+trend, signal, and noise ; "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
@@ -102,6 +104,7 @@ returning a data frame with columns: "fit", "trend" and "signal".
 
 \references{Haining, R. 1990 \emph{Spatial data analysis in the social
 and environmental sciences}, Cambridge: Cambridge University Press, p. 258; Cressie, N. A. C. 1993 \emph{Statistics for spatial data}, Wiley, New York.}
+\references{Thomas-Agnan, C., Laurent, T. and Goulard, M. 2015 \emph{About predictions in spatial autoregressive models: Optimal and almost optimal strategies}, TSE Working Paper, n. 13-452.}
 \author{Roger Bivand \email{Roger.Bivand@nhh.no}}
 
 \seealso{\code{\link{errorsarlm}}, \code{\link{lagsarlm}}}
