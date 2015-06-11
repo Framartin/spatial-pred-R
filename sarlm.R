@@ -47,13 +47,13 @@ fitted.sarlm <- function(object, ...) {
 
 
 # retourne la valeur de la prédiction + un attributs trend et signal
-predict.sarlm <- function(object, newdata=NULL, listw=NULL, 
+predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
 	zero.policy=NULL, legacy=TRUE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
 ...) {
         if (is.null(zero.policy))
             zero.policy <- get("zeroPolicy", envir = .spdepOptions)
         stopifnot(is.logical(zero.policy))
-        if (object$type == "sac") stop("no predict method for sac") # Wy et Weps
+        if (object$type == "sac") stop("no predict method for sac") # Wy et We
         if (is.null(power)) power <- object$method != "eigen"
         stopifnot(is.logical(legacy))
         stopifnot(is.logical(power))
@@ -64,18 +64,45 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL,
 #        if (pred.se && is.null(lagImpact))
 #            stop("lagImpact object from impact method required for standard error estimate")
 	if (is.null(newdata)) { # in-sample pred
-		res <- fitted.values(object)
 		X <- object$X
 		B <- object$coefficients
 		y <- object$y
 		tarX <- object$tarX
 		tary <- object$tary
-		if (object$type == "error") { # We ou WX+We
-			attr(res, "trend") <- as.vector(X %*% B)
-			attr(res, "signal") <- as.vector( -1 * (tary - y) - 					-1 * (tarX - X) %*% B)
-		} else { # lag model or other
-			attr(res, "trend") <- as.vector(X %*% B)
-			attr(res, "signal") <- as.vector( -1 * (tary - y))
+    trend <- X %*% B
+		if (is.null(type)) { # defaut predictor
+		  res <- fitted.values(object)
+		  if (object$type == "error") { # We ou WX+We
+		    attr(res, "trend") <- as.vector(trend)
+		    attr(res, "signal") <- as.vector( -1 * (tary - y) - 					-1 * (tarX - X) %*% B)
+		  } else { # lag model or other
+		    attr(res, "trend") <- as.vector(trend)
+		    attr(res, "signal") <- as.vector( -1 * (tary - y))
+		  }
+		} else { # new predictors
+		  if (! type %in% c("TC", "BP")) stop("no such predictor type")
+		  #TODO: lag model only?
+		  if (is.null(listw) || !inherits(listw, "listw")) 
+		    stop ("spatial weights list required")
+		  if(type %in% c("TC", "BP")) { # need to compute TC
+		    if (power){
+		      W <- as(listw, "CsparseMatrix")
+		      TC <- powerWeights(W, rho = object$rho, X = X, order = order, tol = tol) %*% B
+		    } else {
+		      TC <- invIrW(listw, object$rho) %*% trend #X %*% B
+		    }
+        if(type == "TC") res <- as.vector(TC)
+		    if(type == "BP") {
+		      W <- as(listw, "CsparseMatrix")
+		      Qss <- 1/object$s2 * (as(diag(dim(W)[1]), "CsparseMatrix") - (object$rho * t(W))) %*% (as(diag(dim(W)[1]), "CsparseMatrix") - (object$rho * W)) # precision matrix for LAG model # TODO : change to more appropriate type of Matrix: diagonalMatrix?
+		      DiagQss = as(diag(diag(Qss)), "CsparseMatrix") # TODO : change to more appropriate type of Matrix: diagonalMatrix?
+		      BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (y - TC)
+		      # Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
+		      res <- as.vector(BP)
+		    }
+		  }
+		  attr(res, "trend") <- as.vector(trend)
+		  attr(res, "signal") <- NULL
 		}
 	}
 	else { # out-of-sample
