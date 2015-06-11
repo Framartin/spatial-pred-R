@@ -84,6 +84,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
 		  #TODO: lag model only?
 		  if (is.null(listw) || !inherits(listw, "listw")) 
 		    stop ("spatial weights list required")
+		  if (nrow(X) != length(listw$neighbours))
+		    stop("mismatch between data and spatial weights")
 		  if(type %in% c("TC", "BP")) { # need to compute TC
 		    if (power){
 		      W <- as(listw, "CsparseMatrix")
@@ -127,7 +129,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
                     } else if (object$etype == "emixed") { # WX + We
 			if (is.null(listw) || !inherits(listw, "listw")) 
 				stop ("spatial weights list required")
-			if (nrow(newdata) != length(listw$neighbours))
+			if (nrow(newdata) != length(listw$neighbours)) # TODO: need to be changed for new predictors
 				stop("mismatch between newdata and spatial weights")
 			B <- object$coefficients
 #			mt <- terms(object$formula, data = newdata)
