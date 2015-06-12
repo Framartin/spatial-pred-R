@@ -95,15 +95,15 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
         } else {
           TC <- invIrW(listw, object$rho) %*% trend # TODO: not good for SDM model!
         }
-        if(type == "TC") res <- as.vector(TC)
-        if(type == "BP") {
-          W <- as(listw, "CsparseMatrix")
-          Qss <- 1/object$s2 * (Diagonal(dim(W)[1]) - (object$rho * t(W))) %*% (Diagonal(dim(W)[1]) - (object$rho * W)) # precision matrix for LAG model
-          DiagQss <- Diagonal(x = diag(Qss))
-          BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (y - TC)
-          # Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
-          res <- as.vector(BP)
-        }
+      }
+      if(type == "TC") res <- as.vector(TC)
+      if(type == "BP") {
+        W <- as(listw, "CsparseMatrix")
+        Qss <- 1/object$s2 * (Diagonal(dim(W)[1]) - (object$rho * t(W))) %*% (Diagonal(dim(W)[1]) - (object$rho * W)) # precision matrix for LAG model
+        DiagQss <- Diagonal(x = diag(Qss))
+        BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (y - TC)
+        # Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
+        res <- as.vector(BP)
       }
       attr(res, "trend") <- as.vector(trend)
       attr(res, "signal") <- NULL
@@ -331,6 +331,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
           #KP2 <- TS1 + 
         }
       } else { # not leave-one-out
+        listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo"))
         
       }
     }
@@ -339,6 +340,31 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
   res
 }
 
+# decompose a listw object into Wss Wso Wos and Woo sparse matrices
+.listw.decompose <- function(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo")) { # TODO: hidden? in this file? zero.policy?
+  if (is.null(listw) || !inherits(listw, "listw")) 
+    stop ("spatial weights list required")
+  region.id <- attr(listw, "region.id")
+  if (!all(region.id.data %in% region.id))
+    stop("at least one region.id in data is not in listw object")
+  if (!all(region.id.newdata %in% region.id))
+    stop("at least one region.id in newdata is not in listw object")
+  if (!all(type %in% c("Wss", "Wos", "Wso", "Woo"))) #TODO: better way to do?
+    stop("type is incorrect")
+  W <- as(listw, "CsparseMatrix")
+  s <- list(Wss = NULL, Wos = NULL, Wso = NULL, Woo = NULL)
+  if ("Wss" %in% type)
+    s$Wss <- W[region.id.data, region.id.data]
+  if ("Wos" %in% type)
+    s$Wos <- W[region.id.newdata, region.id.data]
+  if ("Wso" %in% type)
+    s$Wso <- W[region.id.data, region.id.newdata]
+  if ("Woo" %in% type)
+    s$Woo <- W[region.id.newdata, region.id.newdata]
+  return(s)
+  # TODO: be careful when region.id names cannot be the names of a sparse matrix
+  # becareful to the order of rows and columns in the sparse matrix when we used it
+}
 print.sarlm.pred <- function(x, ...) {
 	res <- as.data.frame(x)
 	print(res, ...)
