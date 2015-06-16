@@ -82,6 +82,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
     } else { # new predictors
       if (! type %in% c("X", "TC", "BP")) stop("no such predictor type")
       #TODO: lag model only? + adapt to SDM model
+      #TODO: match newdata columns order with formula
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (nrow(X) != length(listw$neighbours))
@@ -126,7 +127,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
             X <- X[,-which(object$aliased)]
           trend <- X %*% B
           signal <- rep(0, length(trend))
-          res <- trend + signal # pourquoi ajouter signal si c'est un vecteur de 0 ?
+          res <- trend + signal
           attr(res, "trend") <- trend
           attr(res, "signal") <- signal
         } else if (object$etype == "emixed") { # WX + We
@@ -317,12 +318,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
         attr(res, "signal") <- c(signal)
       }
     } else { 
+      #TODO: match newdata columns order with formula
+      #TODO: add a vector of ones if (Intercept)
       if (type %in% c("TS1", "KP2")) { # TODO: add "X" type for out-of-sample. Becareful with mixed models: Wss %*% X is include in object$X
-        if (nrow(newdata) != 1) # only in leave-one-out
-          stop("predictor type only for leave-one-out (newdata should have one row)") # TODO: should we iterate them?
-        is.newdata <- attr(listw$neighbours, "region.id") == rownames(newdata)
-        WoS <- as(listw, "CsparseMatrix")[ is.newdata, ! is.newdata ] # TODO: with listw$neighbours and listw$weights
-        TS1 <- newdata %*% B + object$rho + WoS %*% y
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out") # TODO: should we iterate them?
+        Wos <- .listw.decompose(listw, region.id.data = attr(y, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
+        TS1 <- newdata %*% B + object$rho * Wos %*% y # TODO: what to todo when a same spatial unit is on newdata and on data
         if (type == "TS1") {
           res <- TS1
           #TODO: trend and signal
@@ -331,7 +333,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
           #KP2 <- TS1 + 
         }
       } else { # not leave-one-out
-        listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo"))
+        listw.d = .listw.decompose(listw, region.id.data = NULL, region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
         
       }
     }
@@ -364,7 +366,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
   return(s)
   # TODO: be careful when region.id names cannot be the names of a sparse matrix
   # becareful to the order of rows and columns in the sparse matrix when we used it
+  # TODO: what to do if region.id.newdata is included in region.id.data. Include it, or remove it from data?
 }
+
+
 print.sarlm.pred <- function(x, ...) {
 	res <- as.data.frame(x)
 	print(res, ...)
