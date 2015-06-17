@@ -53,7 +53,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
   if (is.null(zero.policy))
     zero.policy <- get("zeroPolicy", envir = .spdepOptions)
   stopifnot(is.logical(zero.policy))
-  if (object$type == "sac") stop("no predict method for sac") # Wy et We
+  if (object$type == "sac") stop("no predict method for sac") # TODO: need to change # Wy et We
   if (is.null(power)) power <- object$method != "eigen"
   stopifnot(is.logical(legacy))
   stopifnot(is.logical(power))
@@ -63,21 +63,22 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
   #        }
   #        if (pred.se && is.null(lagImpact))
   #            stop("lagImpact object from impact method required for standard error estimate")
+  Xs <- object$X
+  B <- object$coefficients
+  ys <- object$y
+  tarXs <- object$tarX
+  tarys <- object$tary
+  trends <- Xs %*% B
+  
   if (is.null(newdata)) { # in-sample pred
-    X <- object$X
-    B <- object$coefficients
-    y <- object$y
-    tarX <- object$tarX
-    tary <- object$tary
-    trend <- X %*% B
-    if (is.null(type)) { # defaut predictor
+    if (is.null(type) || (type == "TS")) { # defaut predictor
       res <- fitted.values(object)
       if (object$type == "error") { # We ou WX+We
-        attr(res, "trend") <- as.vector(trend)
-        attr(res, "signal") <- as.vector( -1 * (tary - y) - 					-1 * (tarX - X) %*% B)
+        attr(res, "trend") <- as.vector(trends)
+        attr(res, "signal") <- as.vector( -1 * (tarys - ys) -	-1 * (tarXs - Xs) %*% B)
       } else { # lag model or other
-        attr(res, "trend") <- as.vector(trend)
-        attr(res, "signal") <- as.vector( -1 * (tary - y))
+        attr(res, "trend") <- as.vector(trends)
+        attr(res, "signal") <- as.vector( -1 * (tarys - ys))
       }
     } else { # new predictors
       if (! type %in% c("X", "TC", "BP")) stop("no such predictor type")
@@ -85,16 +86,16 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
       #TODO: match newdata columns order with formula
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
-      if (nrow(X) != length(listw$neighbours))
+      if (nrow(Xs) != length(listw$neighbours))
         stop("mismatch between data and spatial weights")
       if (type == "X") { # warning: equals to WX predictor for mixed model
-        res <- as.vector(trend)
+        res <- as.vector(trends)
       } else if (type %in% c("TC", "BP")) { # need to compute TC
         if (power){
           W <- as(listw, "CsparseMatrix")
-          TC <- powerWeights(W, rho = object$rho, X = X, order = order, tol = tol) %*% B # TODO: not good for SDM model!
+          TC <- powerWeights(W, rho = object$rho, X = Xs, order = order, tol = tol) %*% B # TODO: not good for SDM model!
         } else {
-          TC <- invIrW(listw, object$rho) %*% trend # TODO: not good for SDM model!
+          TC <- invIrW(listw, object$rho) %*% trends # TODO: not good for SDM model!
         }
       }
       if(type == "TC") res <- as.vector(TC)
@@ -102,196 +103,106 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
         W <- as(listw, "CsparseMatrix")
         Qss <- 1/object$s2 * (Diagonal(dim(W)[1]) - (object$rho * t(W))) %*% (Diagonal(dim(W)[1]) - (object$rho * W)) # precision matrix for LAG model
         DiagQss <- Diagonal(x = diag(Qss))
-        BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (y - TC)
+        BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (ys - TC)
         # Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
         res <- as.vector(BP)
       }
-      attr(res, "trend") <- as.vector(trend)
+      attr(res, "trend") <- as.vector(trends) # TODO: to be removed?
       attr(res, "signal") <- NULL
     }
   }
   else { # out-of-sample
-    if (is.null(type)) {
+    #CHECK
+    if (!((is.null(type) || (type == "TS")) && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
+      if (is.null(listw) || !inherits(listw, "listw"))
+        stop ("spatial weights list required")
+      if (any(! rownames(newdata) %in% attr(listw, "region.id")))
+        stop("mismatch between newdata and spatial weights")
+      if ((is.null(type) || (type == "TS"))) { # only need Woo
+        if (any(! attr(listw, "region.id") %in% rownames(newdata))) { # for consistency, allow the use of a larger listw with in-sample data
+          listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy) # TODO: need more test
+          # TODO: reorder listw if newdata is not in the order of listw
+        }
+      }
+      #...
+    }
+    
+    # DATA
+    frm <- formula(object$call)
+    mt <- delete.response(terms(frm, data=newdata)) # returns a terms object for the same model but with no response variable
+    mf <- model.frame(mt, newdata)
+    # resolved problem of missing response column in newdata reported by
+    # Christine N. Meynard, 060201
+    if (dim(mf)[1] != length(listw$neighbours))
+      stop("missing values in newdata")
+    Xo <- model.matrix(mt, mf)
+    
+    if (object$type == "mixed" || object$etype == "mixed" ) { # mixed model: compute WXo
+      K <- ifelse(colnames(Xo)[1] == "(Intercept)", 2, 1)
+      m <- ncol(Xo)
+      # check if there are enough regressors
+      if (m > 1) {
+        WXo <- matrix(nrow=nrow(Xo),ncol=(m-(K-1)))
+        for (k in K:m) {
+          wx <- lag.listw(listw, Xo[,k], 
+                          zero.policy=zero.policy)
+          if (any(is.na(wx)))
+            stop("NAs in lagged independent variable")
+          WXo[,(k-(K-1))] <- wx
+        }
+      }
+      if (K == 2) {
+        # unnormalized weight matrices
+        if (!(listw$style == "W")) {
+          intercept <- as.double(rep(1, nrow(Xo)))
+          wx <- lag.listw(listw, intercept, 
+                          zero.policy = zero.policy)
+          if (m > 1) {
+            WXo <- cbind(wx, WXo)
+          } else {
+            WXo <- matrix(wx, nrow = nrow(Xo), ncol = 1)
+          }
+        } 
+      }   
+      Xo <- cbind(Xo, WXo)
+      #  accommodate aliased coefficients 120314
+      if (any(object$aliased))
+        Xo <- Xo[,-which(object$aliased)]
+      trendo <- Xo %*% B
+    } else {
+      #  accommodate aliased coefficients 120314
+      if (any(object$aliased))
+        Xo <- Xo[,-which(object$aliased)]
+      trendo <- Xo %*% B
+    }
+    
+    if (is.null(type) || (type == "TS")) { # defaut predictor
       if (object$type == "error") {
         if (object$etype == "error") { # We
-          B <- object$coefficients
-          #			tt <- terms(object$lm.model) 
-          #			X <- model.matrix(delete.response(tt), data=newdata)
-          frm <- formula(object$call)
-          mt <- delete.response(terms(frm, data=newdata)) # returns a terms object for the same model but with no response variable
-          #			mf <- lm(object$formula, newdata, method="model.frame")
-          mf <- model.frame(mt, newdata)
-          X <- model.matrix(mt, mf)
-          #  accommodate aliased coefficients 120314     # TODO : WHAT ?
-          if (any(object$aliased)) # TODO : What ?
-            X <- X[,-which(object$aliased)]
-          trend <- X %*% B
-          signal <- rep(0, length(trend))
-          res <- trend + signal
-          attr(res, "trend") <- trend
+          signal <- rep(0, length(trendo))
+          res <- trendo + signal
+          attr(res, "trend") <- trendo
           attr(res, "signal") <- signal
         } else if (object$etype == "emixed") { # WX + We
-          if (is.null(listw) || !inherits(listw, "listw")) 
-            stop ("spatial weights list required")
-          if (nrow(newdata) != length(listw$neighbours)) # TODO: need to be changed for new predictors
-            stop("mismatch between newdata and spatial weights")
-          B <- object$coefficients
-          #			mt <- terms(object$formula, data = newdata)
-          frm <- formula(object$call)
-          mt <- delete.response(terms(frm, data=newdata))
-          #			mf <- lm(object$formula, newdata, method="model.frame")
-          mf <- model.frame(mt, newdata)
-          X <- model.matrix(mt, mf)
-          K <- ifelse(colnames(X)[1] == "(Intercept)", 2, 1)
-          m <- ncol(X)
-          # check if there are enough regressors
-          if (m > 1) {
-            WX <- matrix(nrow=nrow(X),ncol=(m-(K-1)))
-            for (k in K:m) {
-              wx <- lag.listw(listw, X[,k], 
-                              zero.policy=zero.policy)
-              if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-              WX[,(k-(K-1))] <- wx
-            }
-          }
-          if (K == 2) {
-            # unnormalized weight matrices
-            if (!(listw$style == "W")) {
-              intercept <- as.double(rep(1, nrow(X)))
-              wx <- lag.listw(listw, intercept, 
-                              zero.policy = zero.policy)
-              if (m > 1) {
-                WX <- cbind(wx, WX)
-              } else {
-                WX <- matrix(wx, nrow = nrow(X), ncol = 1)
-              }
-            } 
-          }   
-          X <- cbind(X, WX)
-          #  accommodate aliased coefficients 120314
-          if (any(object$aliased))
-            X <- X[,-which(object$aliased)]
-          trend <- X %*% B
-          signal <- rep(0, length(trend)) # vecteur de 0
-          res <- trend + signal # prediction
-          attr(res, "trend") <- trend
+          signal <- rep(0, length(trendo))
+          res <- trend + signal
+          attr(res, "trend") <- trendo
           attr(res, "signal") <- signal
         } else stop("unkown error model etype")
       } else if (object$type == "mixed") { # Wy+WX
-        if (is.null(listw) || !inherits(listw, "listw")) 
-          stop ("spatial weights list required")
-        if (nrow(newdata) != length(listw$neighbours))
-          stop("mismatch between newdata and spatial weights")
-        B <- object$coefficients
-        #			mt <- terms(object$formula, data = newdata)
-        frm <- formula(object$call)
-        mt <- delete.response(terms(frm, data=newdata))
-        #			mf <- lm(object$formula, newdata, method="model.frame")
-        mf <- model.frame(mt, newdata)
-        X <- model.matrix(mt, mf)
-        K <- ifelse(colnames(X)[1] == "(Intercept)", 2, 1)
-        m <- ncol(X)
-        # check if there are enough regressors
-        if (m > 1) {
-          WX <- matrix(nrow=nrow(X),ncol=(m-(K-1)))
-          for (k in K:m) {
-            wx <- lag.listw(listw, X[,k], 
-                            zero.policy=zero.policy)
-            if (any(is.na(wx))) 
-              stop("NAs in lagged independent variable")
-            WX[,(k-(K-1))] <- wx
-          }
-        }
-        if (K == 2) {
-          # unnormalized weight matrices
-          if (!(listw$style == "W")) {
-            intercept <- as.double(rep(1, nrow(X)))
-            wx <- lag.listw(listw, intercept, 
-                            zero.policy = zero.policy)
-            if (m > 1) {
-              WX <- cbind(wx, WX)
-            } else {
-              WX <- matrix(wx, nrow = nrow(X), ncol = 1)
-            }
-          } 
-        }   
-        X <- cbind(X, WX)
-        #  accommodate aliased coefficients 120314
-        if (any(object$aliased))
-          X <- X[,-which(object$aliased)]
-        trend <- X %*% B
-        if (power) { # calcul de (I - rho*W)^-1 en élevant à la puissance
-          W <- as(listw, "CsparseMatrix")
-          res <- c(as(powerWeights(W, rho=object$rho,
-                                   X=trend, order=order, tol=tol), "matrix"))
-        } else { # calcul de (I - rho*W)^-1 en inversant la matrice
-          res <- c(invIrW(listw, object$rho) %*% trend)
-        }
-        if (legacy) {
-          signal <- object$rho * lag.listw(listw, 
-                                           res, zero.policy=zero.policy)
-          res <- c(trend + signal)
-        } else {
-          signal <- res - trend
-        }
-        #                        if (pred.se) {
-        #                            samples <- attr(lagImpact, "samples")$samples
-        #                            irho <- attr(lagImpact, "samples")$irho
-        #                            drop2beta <- attr(lagImpact, "samples")$drop2beta
-        #                            nSim <- nrow(samples)
-        #                            outmat <- matrix(NA, ncol=nSim, nrow=nrow(X))
-        #                            for (i in 1:nSim) {
-        #                                B <- samples[i, -drop2beta]
-        #                                trend <- X %*% B
-        #                                rho <- samples[i, irho]
-        #                                if (power) {
-        #                                    res <- c(as(powerWeights(W, rho=rho,
-        #                                    X=trend, order=order, tol=tol), "matrix"))
-        #                                } else {
-        #                                    res <- c(invIrW(listw, rho) %*% trend)
-        #                                }
-        #                                outmat[,i] <- res
-        #                            }
-        #                            pred.se <- apply(outmat, 1, sd)
-        #                            attr(res, "pred.se") <- pred.se
-        #                        }
-        attr(res, "trend") <- c(trend)
-        attr(res, "signal") <- c(signal)
-      } else { # Wy (ou Wy+We ??)
-        if (is.null(listw) || !inherits(listw, "listw")) 
-          stop ("spatial weights list required")
-        if (nrow(newdata) != length(listw$neighbours))
-          stop("mismatch between newdata and spatial weights")
-        B <- object$coefficients
-        #			mt <- terms(object$formula, data = newdata)
-        frm <- formula(object$call)
-        mt <- delete.response(terms(frm, data=newdata))
-        #			mt <- delete.response(terms(object$formula))
-        #			mf <- lm(object$formula, newdata, method="model.frame")
-        # resolved problem of missing response column in newdata reported by
-        # Christine N. Meynard, 060201
-        mf <- model.frame(mt, newdata)
-        if (dim(mf)[1] != length(listw$neighbours))
-          stop("missing values in newdata")
-        X <- model.matrix(mt, mf)
-        #  accommodate aliased coefficients 120314
-        if (any(object$aliased))
-          X <- X[,-which(object$aliased)]
-        trend <- X %*% B
         if (power) {
           W <- as(listw, "CsparseMatrix")
           res <- c(as(powerWeights(W, rho=object$rho,
-                                   X=trend, order=order, tol=tol), "matrix"))
-        } else {
-          res <- c(invIrW(listw, object$rho) %*% trend)
+                                   X=trendo, order=order, tol=tol), "matrix"))
+        } else { # calcul de (I - rho*W)^-1 en inversant la matrice
+          res <- c(invIrW(listw, object$rho) %*% trendo)
         }
         if (legacy) {
           signal <- object$rho * lag.listw(listw, 
                                            res, zero.policy=zero.policy)
-          res <- c(trend + signal)
+          res <- c(trendo + signal)
         } else {
-          signal <- res - trend
+          signal <- res - trendo
         }
         #                        if (pred.se) {
         #                            samples <- attr(lagImpact, "samples")$samples
@@ -314,12 +225,48 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
         #                            pred.se <- apply(outmat, 1, sd)
         #                            attr(res, "pred.se") <- pred.se
         #                        }
-        attr(res, "trend") <- c(trend)
+        attr(res, "trend") <- c(trendo)
+        attr(res, "signal") <- c(signal)
+      } else { # Wy (TODO: when we will allow predict for SAC, make sure we have an error here)
+        if (power) {
+          W <- as(listw, "CsparseMatrix")
+          res <- c(as(powerWeights(W, rho=object$rho,
+                                   X=trendo, order=order, tol=tol), "matrix"))
+        } else {
+          res <- c(invIrW(listw, object$rho) %*% trendo)
+        }
+        if (legacy) {
+          signal <- object$rho * lag.listw(listw, 
+                                           res, zero.policy=zero.policy)
+          res <- c(trendo + signal)
+        } else {
+          signal <- res - trendo
+        }
+        #                        if (pred.se) {
+        #                            samples <- attr(lagImpact, "samples")$samples
+        #                            irho <- attr(lagImpact, "samples")$irho
+        #                            drop2beta <- attr(lagImpact, "samples")$drop2beta
+        #                            nSim <- nrow(samples)
+        #                            outmat <- matrix(NA, ncol=nSim, nrow=nrow(X))
+        #                            for (i in 1:nSim) {
+        #                                B <- samples[i, -drop2beta]
+        #                                trend <- X %*% B
+        #                                rho <- samples[i, irho]
+        #                                if (power) {
+        #                                    res <- c(as(powerWeights(W, rho=rho,
+        #                                    X=trend, order=order, tol=tol), "matrix"))
+        #                                } else {
+        #                                    res <- c(invIrW(listw, rho) %*% trend)
+        #                                }
+        #                                outmat[,i] <- res
+        #                            }
+        #                            pred.se <- apply(outmat, 1, sd)
+        #                            attr(res, "pred.se") <- pred.se
+        #                        }
+        attr(res, "trend") <- c(trendo)
         attr(res, "signal") <- c(signal)
       }
-    } else { 
-      #TODO: match newdata columns order with formula
-      #TODO: add a vector of ones if (Intercept)
+    } else {
       if (type %in% c("TS1", "KP2")) { # TODO: add "X" type for out-of-sample. Becareful with mixed models: Wss %*% X is include in object$X
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out") # TODO: should we iterate them?
