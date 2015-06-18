@@ -13,7 +13,7 @@ model objects, using Haining's terminology for decomposition into
 trend, signal, and noise --- see reference.
 }
 \usage{
-\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type=NULL,
+\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type=NULL, all.data=FALSE,
  zero.policy = NULL, legacy=TRUE, power=NULL, order=250,
  tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
  ...)
@@ -27,8 +27,9 @@ trend, signal, and noise --- see reference.
   \item{newdata}{Data frame in which to predict --- if NULL, predictions are
 for the data on which the model was fitted}
   \item{listw}{a \code{listw} object created for example by \code{nb2listw}}
-  \item{type}{default NULL, use decomposition into
-trend, signal, and noise ; "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL}
+  \item{type}{default NULL (or if type = "TS"), use decomposition into
+trend, signal, and noise ; "X" "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL}
+  \item{all.data}{(Only applies if type="TC" and newdata not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units (see details)}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
@@ -93,7 +94,9 @@ unobservable, this means that the signal values for newdata are
 incomplete. In the mixed model, the spatially lagged RHS variables
 influence both the trend and the signal, so that the root mean square
 prediction error in the examples below for this case with newdata is
-smallest, although the model was not the best fit 
+smallest, although the model was not the best fit.
+
+The all.data option is useful for some predictors, because some out-of-sample predictors can returned different prediction for in-sample units, than the same predictor type for in-sample data. 
 }
 \value{
  \code{predict.sarlm()} returns a vector of predictions with two attribute 

@@ -47,7 +47,7 @@ fitted.sarlm <- function(object, ...) {
 
 
 # retourne la valeur de la prédiction + un attributs trend et signal
-predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, 
+predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=FALSE,
                           zero.policy=NULL, legacy=TRUE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
                           ...) {
   if (is.null(zero.policy))
@@ -55,6 +55,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
   stopifnot(is.logical(zero.policy))
   if (object$type == "sac") stop("no predict method for sac") # TODO: need to change # Wy et We
   if (is.null(power)) power <- object$method != "eigen"
+  stopifnot(is.logical(all.data))
   stopifnot(is.logical(legacy))
   stopifnot(is.logical(power))
   #        if (pred.se && object$type == "error") {
@@ -267,11 +268,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
         attr(res, "signal") <- c(signal)
       }
     } else {
-      if (type %in% c("TS1", "KP2")) { # TODO: add "X" type for out-of-sample. Becareful with mixed models: Wss %*% X is include in object$X
+      if (type %in% c("TS1", "KP2")) {
         if (nrow(newdata) > 1)
-          warning("newdata have more than 1 row and the predictor type is leave-one-out") # TODO: should we iterate them?
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
         Wos <- .listw.decompose(listw, region.id.data = attr(y, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
-        TS1 <- newdata %*% B + object$rho * Wos %*% y # TODO: what to todo when a same spatial unit is on newdata and on data
+        TS1 <- Xo %*% B + object$rho * Wos %*% ys # TODO: what to todo when a same spatial unit is on newdata and on data
         if (type == "TS1") {
           res <- TS1
           #TODO: trend and signal
@@ -280,8 +281,47 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL,
           #KP2 <- TS1 + 
         }
       } else { # not leave-one-out
-        listw.d = .listw.decompose(listw, region.id.data = NULL, region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
-        
+        if (type == "TC") {
+          #notations of C.Thomas and al (2015)
+          if (all.data) { # TCo = TC for out-of-sample spatial units
+          listw.d = .listw.decompose(listw, region.id.data = NULL, region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
+          Wss <- listw.d$Wss
+          Wso <- listw.d$Wso
+          Wos <- listw.d$Wos
+          Wss <- listw.d$Wss
+          mB <- - object$rho * Wso
+          mC <- - object$rho * Wos
+          mD <- Diagonal(dim(Woo)[1]) - object$rho * Woo
+          if (power){
+            mAInvXsB <- powerWeights(Wss, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
+            mAInvmB <- powerWeights(Wss, rho = object$rho, X = mB, order = order, tol = tol)
+            E <- solve(mD - mC %*% mAInvmB)
+            TCo <- - E %*% mC %*% mAInvXsB + E %*% Xo %*% B
+          } else {
+            # manually without using invIrW, because it use method="solve" by default, but accept only a listw object. 
+            mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
+            mAInv <- solve(mA)
+            E <- solve(mD - mC %*% mAInv %*% mB)
+            TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
+          }
+          res <- TCo
+          } else {
+            # compute s and o units together
+            X <- rbind(Xs, Xo)
+            trend <- X %*% B
+            if (power){
+              W <- as(listw, "CsparseMatrix")
+              TC <- powerWeights(W, rho = object$rho, X = X, order = order, tol = tol) %*% B
+            } else {
+              TC <- invIrW(listw, object$rho) %*% trend
+            }
+            res <- TC
+            # TODO: performances test to know if computing TCo and TCs is quicker than computing TC
+          }
+          
+        } else {
+          stop("unknow predictor type")
+        }
       }
     }
   }
