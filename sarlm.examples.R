@@ -1,3 +1,5 @@
+library(spdep)
+
 data(oldcol)
 lw <- nb2listw(COL.nb)
 COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw)
@@ -12,7 +14,10 @@ colnames(newdata) = c('INC', 'HOVAL')
 
 
 # decomposing data in in-sample and out-of-sample
+listw = lw
 region.id = attr(listw, "region.id")
 region.id.data = region.id[!region.id %in% c("1003", "1005", "1042")]
 region.id.newdata = region.id[region.id %in% c("1003", "1005", "1042")]
-listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo"))
+listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo")) # matrice dans l'ordre de region.id.data et region.id.new                                     data
+
+newdata = COL.OLD[c("1003", "1005", "1042"), c("INC", "HOVAL")]
