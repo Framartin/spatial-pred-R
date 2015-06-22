@@ -8,7 +8,7 @@ The goal is to extend prediction in spatial econometrics for in-sample and out-o
 
 Run `source("sarlm.R")`
 
-Examples are given in the `sarlm.examples` file.
+Examples are given in the `sarlm.examples.R` file.
 
 ## Documentation
 
@@ -21,13 +21,16 @@ The new documentation is provided in `predict.sarlm.Rd`.
 3. [spatial-pred-r](http://htmlpreview.github.io/?https://github.com/jsay/spatial-pred-R/blob/master/DOC.html#sec-7) project
 4. Kato, T. (2012). "Prediction in the lognormal regression model with spatial error dependence". Journal of Housing Economics 21: 66-76.
 5.  Kelejian, H. H. and I. R. Prucha (2007). "The relative efficiencies of various predictors in spatial econometric models containing spatial lags". Regional Science and Urban Economics 37: 363-374.
+6. Kato (2008)
 
 Notes on the previous references:
+
 1. Definition of in-sample and out-of-sample prediction in the spatial case. Using its notations (eg. for the sub-spatial weight matrix). Proposed new predictors for the LAG model. Extended here to SDM model (and to SAC model, with warning ; to be confirmed).
-2. Description of the previous version of `predict.sarlm()`.
+2. Description of the previous version of `predict.sarlm()`. The `pred.sarlm` class may have to change.
 3. Using its notations for new predictors. Using a different approach for predictors: for `mixed` models we include WX in the X matrix object. Our goal is to include this custom function `sppred()` into the `predict.sarlm()` framework.
 4. Prediction with a log-transformed variable on SEM model. TODO
-5. TOOD
+5. TODO
+6. TODO: BPn predictor for SEM model?
 
 
 ## Other useful References
@@ -36,6 +39,11 @@ Notes on the previous references:
 * Millo G, Piras G (2012). "splm: Spatial Panel Data Models in R." Journal of Statistical Software, 47(1), 1-38.
 * Millo G (2014). "Maximum likelihood estimation of spatially and serially correlated panels with random effects". Computational Statistics & Data Analysis 71 (March), 914-933.
 * Piras G (2010). "sphet: Spatial Models with Heteroskedastic Innovations in R." Journal of Statistical Software, 35(1), 1-21.
+
+## TODO list
+
+* For leave-one-out predictors, if an out-of-sample unit has no neighbors, warns that non-spatial predictor will do the same more efficiently
+
 
 
 ## Notes
