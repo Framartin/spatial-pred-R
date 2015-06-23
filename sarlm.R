@@ -84,7 +84,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     } else { # new predictors
       if (! type %in% c("X", "TC", "BP")) stop("no such predictor type")
       #TODO: lag model only? + adapt to SDM model
-      #TODO: match newdata columns order with formula
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (nrow(Xs) != length(listw$neighbours))
@@ -105,14 +104,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         Qss <- 1/object$s2 * (Diagonal(dim(W)[1]) - (object$rho * t(W))) %*% (Diagonal(dim(W)[1]) - (object$rho * W)) # precision matrix for LAG model
         DiagQss <- Diagonal(x = diag(Qss))
         BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (ys - TC)
-        # Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
+        # TODO: Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
         res <- as.vector(BP)
       }
       attr(res, "trend") <- as.vector(trends) # TODO: to be removed?
-      attr(res, "signal") <- NULL
+      #attr(res, "signal") <- NULL
     }
-  }
-  else { # out-of-sample
+  } else { # out-of-sample
     #CHECK
     if (!((is.null(type) || (type == "TS")) && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
       if (is.null(listw) || !inherits(listw, "listw"))
@@ -325,6 +323,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       }
     }
   }
+  attr(res, "type") <- type
   class(res) <- "sarlm.pred"
   res
 }
@@ -365,8 +364,12 @@ print.sarlm.pred <- function(x, ...) {
 
 
 as.data.frame.sarlm.pred <- function(x, ...) {
-    res <- data.frame(fit=as.vector(x), trend=attr(x, "trend"), 
-        signal=attr(x, "signal"))
-    res
+#    res <- data.frame(fit=as.vector(x), trend=attr(x, "trend"), 
+#        signal=attr(x, "signal"))
+#fix bug when no signal or trend attributes
+  res <- data.frame(fit=as.vector(x))
+  if(!is.null(attr(x, "trend"))) res$trend <- attr(x, "trend")
+  if(!is.null(attr(x, "signal"))) res$signal <- attr(x, "signal")
+  res
 }
 
