@@ -4,13 +4,11 @@
 
 For now, I have only worked on spdep.
 - reading papers and doc
-- code for in-sample predictors and one leave-one-out predictor of
-C.Thomas and al.
+- code for in-sample predictors and one leave-one-out predictor of C.Thomas and al.
 - add these ones to predict.sarlm()
 - first update of the doc (still incomplete)
 - some small optimizations
-
-+ questions
+- (lot of) questions
 
 ## 2nd progress report
 
@@ -24,12 +22,11 @@ C.Thomas and al.
 
 ## Agenda 1st Skype call
 
-* class of the object return: deal with in-sample / out-of-sample predictions ; deal with future prediction intervals (not now) / keep trend and signal attributes only for default predictor?
-* What is aliased coef?
+* class of the returned object: deal with in-sample / out-of-sample predictions ; deal with future prediction intervals (not now) / keep trend and signal attributes only for default predictor?
 * How we ensure that the order of the spatial unit in listw is the same than newdata?
 * Is it possible to reorder spatial unit in a listw object? If not, I think we can work with only W in SparseMatrix, but it will imply modifications.
 * No Trend-Signal decomposition for the SAC model?
-
+* What is aliased coef?
 
 ## TODO
 
