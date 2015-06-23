@@ -1,23 +1,47 @@
 library(spdep)
+source("sarlm.R")
 
 data(oldcol)
 lw <- nb2listw(COL.nb)
 COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw)
 COL.mix.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw, type="mixed")
-p1 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F)
-p2 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "BP")
 
-# loo
-newdata = matrix(c(1,2), nrow=1)
-rownames(newdata) = "1003"
-colnames(newdata) = c('INC', 'HOVAL')
+# I - In-sample predictors
+
+# defaut predictor: trend-signal decomposition
+p1 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F)
+p1_bis = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "TS") # same call
+# X: only the trend
+p2 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "X")
+# TC
+p3 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "TC")
+# BP
+p4 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "BP")
+
+# TODO: Prediction
+
+
+# III - Out-of-sample predictions
 
 
 # decomposing data in in-sample and out-of-sample
 listw = lw
 region.id = attr(listw, "region.id")
-region.id.data = region.id[!region.id %in% c("1003", "1005", "1042")]
-region.id.newdata = region.id[region.id %in% c("1003", "1005", "1042")]
-listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo")) # matrice dans l'ordre de region.id.data et region.id.new                                     data
+region.id.data = region.id[!region.id %in% c("1042", "1043", "1044", "1045")]
+region.id.newdata = region.id[region.id %in% c("1042", "1043", "1044", "1045")]
+listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("Wss", "Wos", "Wso", "Woo")) # submatrices in the order of region.id.data and region.id.newdata
 
-newdata = COL.OLD[c("1003", "1005", "1042"), c("INC", "HOVAL")]
+# fit model
+data = COL.OLD[!rownames(COL.OLD) %in% c("1042", "1043", "1044", "1045"), ]
+listw.sub <- subset(listw, !region.id %in% c("1042", "1043", "1044", "1045"))
+COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=data, listw.sub)
+
+newdata = COL.OLD[c("1042", "1043", "1044", "1045"), c("INC", "HOVAL")]
+newdata = COL.OLD[c("1042", "1043", "1044", "1045"), ] # work with newdata having other columns in a different order than formula
+
+# out-sample predictors
+COL.OLD[region.id.newdata, "CRIME"] # true values
+
+po1 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T)
+po2 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TS1")
+po3 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC")
