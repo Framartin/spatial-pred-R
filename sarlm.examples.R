@@ -45,3 +45,6 @@ COL.OLD[region.id.newdata, "CRIME"] # true values
 po1 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T)
 po2 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TS1")
 po3 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC")
+po4 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC", all.data = T) # returns for all spatial units
+#TODO: need to be check. We do not recover the same predictions. This is link to the fact that lw is used directly in the wrong order
+po5 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP")

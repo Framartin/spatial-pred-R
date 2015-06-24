@@ -2,47 +2,47 @@
 #
 
 residuals.sarlm <- function(object, ...) {
-	if (is.null(object$na.action))
-		object$residuals
-	else napredict(object$na.action, object$residuals)
+  if (is.null(object$na.action))
+    object$residuals
+  else napredict(object$na.action, object$residuals)
 }
 
 deviance.sarlm <- function(object, ...) {
-	object$SSE
+  object$SSE
 }
 
 coef.sarlm <- function(object, ...) {
-	ret <- NULL
-#	ret <- sqrt(object$s2)
-#	names(ret) <- "sigma"
-	if (object$type == "error") ret <- c(ret, object$lambda)
-	else if (object$type == "lag" || object$type == "mixed")
-            ret <- c(ret, object$rho)
-        else if (object$type == "sac" || object$type == "sacmixed")
-            ret <- c(ret, object$rho, object$lambda)
-	ret <- c(ret, object$coefficients)
-
-	ret
+  ret <- NULL
+  #	ret <- sqrt(object$s2)
+  #	names(ret) <- "sigma"
+  if (object$type == "error") ret <- c(ret, object$lambda)
+  else if (object$type == "lag" || object$type == "mixed")
+    ret <- c(ret, object$rho)
+  else if (object$type == "sac" || object$type == "sacmixed")
+    ret <- c(ret, object$rho, object$lambda)
+  ret <- c(ret, object$coefficients)
+  
+  ret
 }
 
 vcov.sarlm <- function(object, ...) {
-	if (object$ase) res <- object$resvar[-1,-1]
-        else {
-            if (!is.null(object$fdHess)) {
-                if (object$insert) res <- object$resvar[-1,-1]
-                else res <- object$resvar
-            } else {
-                stop("vcov not available for this model")
-            }
-        }
-        res
+  if (object$ase) res <- object$resvar[-1,-1]
+  else {
+    if (!is.null(object$fdHess)) {
+      if (object$insert) res <- object$resvar[-1,-1]
+      else res <- object$resvar
+    } else {
+      stop("vcov not available for this model")
+    }
+  }
+  res
 }
 
 
 fitted.sarlm <- function(object, ...) {
-	if (is.null(object$na.action))
-		object$fitted.values
-	else napredict(object$na.action, object$fitted.values)
+  if (is.null(object$na.action))
+    object$fitted.values
+  else napredict(object$na.action, object$fitted.values)
 }
 
 
@@ -280,31 +280,9 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           #KP2 <- TS1 + 
         }
       } else { # not leave-one-out
-        if (type == "TC") {
+        if (type %in% c("TC", "BP")) { # need to compute TC
           #notations of C.Thomas and al (2015)
-          if (!all.data) { # TCo = TC for out-of-sample spatial units
-          listw.d = .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
-          Wss <- listw.d$Wss
-          Wso <- listw.d$Wso
-          Wos <- listw.d$Wos
-          Woo <- listw.d$Woo
-          mB <- - object$rho * Wso
-          mC <- - object$rho * Wos
-          mD <- Diagonal(dim(Woo)[1]) - object$rho * Woo
-          if (power){
-            mAInvXsB <- powerWeights(Wss, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
-            mAInvmB <- powerWeights(Wss, rho = object$rho, X = mB, order = order, tol = tol)
-            E <- solve(mD - mC %*% mAInvmB)
-            TCo <- - E %*% mC %*% mAInvXsB + E %*% Xo %*% B
-          } else {
-            # manually without using invIrW, because it use method="solve" by default, but accept only a listw object. 
-            mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
-            mAInv <- solve(mA)
-            E <- solve(mD - mC %*% mAInv %*% mB)
-            TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
-          }
-          res <- as.vector(TCo)
-          } else {
+          if (all.data | type == "BP") { # TCo = TC for out-of-sample spatial units
             # compute s and o units together
             X <- rbind(Xs, Xo)
             trend <- X %*% B
@@ -314,13 +292,50 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
             } else {
               TC <- invIrW(listw, object$rho) %*% trend
             }
-            res <- as.vector(TC)
             # TODO: performances test to know if computing TCo and TCs is quicker than computing TC
-          }
-          
-        } else {
-          stop("unknow predictor type")
+          } else {
+            listw.d = .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
+            Wss <- listw.d$Wss
+            Wso <- listw.d$Wso
+            Wos <- listw.d$Wos
+            Woo <- listw.d$Woo
+            mB <- - object$rho * Wso
+            mC <- - object$rho * Wos
+            mD <- Diagonal(dim(Woo)[1]) - object$rho * Woo
+            if (power){
+              mAInvXsB <- powerWeights(Wss, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
+              mAInvmB <- powerWeights(Wss, rho = object$rho, X = mB, order = order, tol = tol)
+              E <- solve(mD - mC %*% mAInvmB)
+              TCo <- - E %*% mC %*% mAInvXsB + E %*% Xo %*% B
+            } else {
+              # manually without using invIrW, because it use method="solve" by default, but accept only a listw object. 
+              mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
+              mAInv <- solve(mA)
+              E <- solve(mD - mC %*% mAInv %*% mB)
+              TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
+            }
+          }          
         }
+      }
+      if (type == "TC") {
+        if(all.data) {
+          res <- as.vector(TC)
+        } else {
+          res <- as.vector(TCo)
+        }
+      } else if (type == "BP") {
+        is.data <- 1:length(ys)
+        is.newdata <- (length(ys)+1):length(TC)
+        TCo <- TC[is.newdata] # TODO: need to check after modifs on TC: in-sample should be first and then out-of-sample 
+        TCs <- TC[is.data] # TODO: idem
+        W <- as(listw, "CsparseMatrix")
+        Q <- 1/object$s2 * ( Diagonal(dim(W)[1]) - object$rho * (t(W) + W) + object$rho^2 * (t(W) %*% W) )
+        Qoo <- Q[is.newdata, is.newdata]
+        Qos <- Q[is.newdata, is.data]
+        BPo <- TCo - solve(Qoo) %*% Qos %*% (ys - TCs)
+        res <- as.vector(BPo)
+      } else {
+        stop("unknow predictor type")
       }
     }
   }
@@ -358,16 +373,16 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
 
 
 print.sarlm.pred <- function(x, ...) {
-	res <- as.data.frame(x)
-	print(res, ...)
-	invisible(res)
+  res <- as.data.frame(x)
+  print(res, ...)
+  invisible(res)
 }
 
 
 as.data.frame.sarlm.pred <- function(x, ...) {
-#    res <- data.frame(fit=as.vector(x), trend=attr(x, "trend"), 
-#        signal=attr(x, "signal"))
-#fix bug when no signal or trend attributes
+  #    res <- data.frame(fit=as.vector(x), trend=attr(x, "trend"), 
+  #        signal=attr(x, "signal"))
+  #fix bug when no signal or trend attributes
   res <- data.frame(fit=as.vector(x))
   if(!is.null(attr(x, "trend"))) res$trend <- attr(x, "trend")
   if(!is.null(attr(x, "signal"))) res$signal <- attr(x, "signal")
