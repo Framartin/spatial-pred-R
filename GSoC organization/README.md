@@ -27,7 +27,8 @@ For now, I have only worked on spdep.
 * Is it possible to reorder spatial unit in a listw object? If not, I think we can work with only W in SparseMatrix, but it will imply modifications.
 * No Trend-Signal decomposition for the SAC model?
 * What is aliased coef?
-* Prevision case (ie. newdata for in-sample spatial units): shloud we use in-sample predictors? And "stange" cases where we have both in-sample and out-of-sample spatial units?
+* Prevision case (ie. newdata for in-sample spatial units): should we use in-sample predictors? And "strange" cases where we have both in-sample and out-of-sample spatial units?
+* Support log-transformation of the dependent variable?
 
 ## 3rd progress report
 
