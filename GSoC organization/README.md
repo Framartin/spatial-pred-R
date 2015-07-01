@@ -2,6 +2,8 @@
 
 ## 1st progress report
 
+12/06/2015
+
 For now, I have only worked on spdep.
 - reading papers and doc
 - code for in-sample predictors and one leave-one-out predictor of C.Thomas and al.
@@ -11,6 +13,8 @@ For now, I have only worked on spdep.
 - (lot of) questions
 
 ## 2nd progress report
+
+23/06/2015
 
 - continue reading papers
 - reorganize the code of predict.sarlm(): check, data, predictor. To avoid duplicated code. This allows the bug fix of NA in newdata to be apply for all models.
@@ -22,15 +26,27 @@ For now, I have only worked on spdep.
 
 ## Agenda 1st Skype call
 
-* class of the returned object: deal with in-sample / out-of-sample predictions ; deal with future prediction intervals (not now) / keep trend and signal attributes only for default predictor?
-* How we ensure that the order of the spatial unit in listw is the same than newdata?
+26/06/2015
+Solutions are under questions.
+
+* class of the returned object: deal with in-sample / out-of-sample predictions ; deal with future prediction intervals (not now) / keep trend and signal attributes only for default predictor? 
+  + If we choose to change the behavior, allow the use of the option legacy to use the old code. 
+* How we ensure that the order of the spatial units in listw is the same than newdata?
+  + see all methods for creating listw objects. 
 * Is it possible to reorder spatial unit in a listw object? If not, I think we can work with only W in SparseMatrix, but it will imply modifications.
+  + Easy solution: convert to Sparse Matrix and subset&order. But not efficient. For other solution: see spChk option and functions of spChkOption.R
 * No Trend-Signal decomposition for the SAC model?
+  + No
 * What is aliased coef?
+  + same definition than lm(): QR decomposition determine if X is full rank. If case of perfect collinearity, one variable is dropped, ie. marked as aliased. See predict.lm() to see what to do.
 * Prevision case (ie. newdata for in-sample spatial units): should we use in-sample predictors? And "strange" cases where we have both in-sample and out-of-sample spatial units?
+  + See what others functions do (glm, ts, etc). Use in-sample predictors. Print warning in the case of this "strange" case. But need to allow this case because it can happens often. In this case, use out-of-sample.
 * Support log-transformation of the dependent variable?
+  + see predict.lm(). For now, even if the log-transformation is quite popular in spatial econometrics, we keep it as a note for the future. I will implement predictors of Kato (2012) only if we have extra time at the end. Look at the total impact for prediction with X_s +1 to test if results are what is intended.
 
 ## 3rd progress report
+
+03/07/2015
 
 * Update sarlm.examples.R
 * Fix some bugs
@@ -46,3 +62,4 @@ For now, I have only worked on spdep.
 * warnings if spatial units are on newdata and data
 * add spatial units names for rows
 * work on splm & spdep
+
