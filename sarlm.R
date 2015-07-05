@@ -82,13 +82,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         attr(res, "signal") <- as.vector( -1 * (tarys - ys))
       }
     } else { # new predictors
-      if (! type %in% c("X", "TC", "BP")) stop("no such predictor type")
+      if (! type %in% c("trend", "TC", "BP")) stop("no such predictor type")
       #TODO: lag model only? + adapt to SDM model
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (nrow(Xs) != length(listw$neighbours))
         stop("mismatch between data and spatial weights")
-      if (type == "X") { # warning: equals to WX predictor for mixed model
+      if (type == "trend") { # warning: equals to WX predictor for mixed model
         res <- as.vector(trends)
       } else if (type %in% c("TC", "BP")) { # need to compute TC
         if (power){
@@ -136,6 +136,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       stop("missing values in newdata")
     Xo <- model.matrix(mt, mf)
     
+    #TODO: skip if no need of listw
     if (sum(object$type == "mixed", object$etype == "mixed" )>0) { # mixed model: compute WXo # Fix bug if object$etype doesn't exist
       K <- ifelse(colnames(Xo)[1] == "(Intercept)", 2, 1)
       m <- ncol(Xo)
@@ -266,7 +267,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         attr(res, "signal") <- c(signal)
       }
     } else {
-      #TODO: add X predictor
       if (type %in% c("TS1", "KP2")) {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
@@ -282,7 +282,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       } else { # not leave-one-out
         if (type %in% c("TC", "BP")) { # need to compute TC
           #notations of C.Thomas and al (2015)
-          if (all.data | type == "BP") { # TCo = TC for out-of-sample spatial units
+          if (all.data | type == "BP") {
             # compute s and o units together
             X <- rbind(Xs, Xo)
             trend <- X %*% B
@@ -293,7 +293,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
               TC <- invIrW(listw, object$rho) %*% trend
             }
             # TODO: performances test to know if computing TCo and TCs is quicker than computing TC
-          } else {
+          } else { # TCo = TC for out-of-sample spatial units
             listw.d = .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
             Wss <- listw.d$Wss
             Wso <- listw.d$Wso
@@ -314,10 +314,12 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
               E <- solve(mD - mC %*% mAInv %*% mB)
               TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
             }
-          }          
+          }
         }
       }
-      if (type == "TC") {
+      if (type == "trend") {
+        res <- as.vector(trendo)
+      } else if (type == "TC") {
         if(all.data) {
           res <- as.vector(TC)
         } else {
