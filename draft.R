@@ -1,5 +1,7 @@
 # implementation of 'About predictions in spatial autoregressive models: optimal and almost optimal strategies'
 
+# TODO; optimize using tcrossprod() when possible
+
 # in-sample
 if (power){
    W <- as(listw, "CsparseMatrix")

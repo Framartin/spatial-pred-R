@@ -30,7 +30,7 @@ For now, I have only worked on spdep.
 Solutions are under questions.
 
 * class of the returned object: deal with in-sample / out-of-sample predictions ; deal with future prediction intervals (not now) / keep trend and signal attributes only for default predictor? 
-  + If we choose to change the behavior, allow the use of the option legacy to use the old code. 
+  + See how other functions handle that. If we choose to change the behavior, allow the use of the option legacy to use the old code. 
 * How we ensure that the order of the spatial units in listw is the same than newdata?
   + see all methods for creating listw objects. 
 * Is it possible to reorder spatial unit in a listw object? If not, I think we can work with only W in SparseMatrix, but it will imply modifications.
@@ -52,6 +52,12 @@ Solutions are under questions.
 * Fix some bugs
 * Add BP predictor
 * Confirmation from C.Thomas that predictors of the LAG model can be extend to SDM model by replacing X_S by (X_S, WX_S), X_O by (X_O, WX_O) and beta by (beta, teta)' where teta is the vector of coefficients associated with WX_S (already done in sarlm.R)
+
+## 4th progress report
+
+
+* Read ref 7.
+
 
 ## TODO
 

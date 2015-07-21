@@ -53,7 +53,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   if (is.null(zero.policy))
     zero.policy <- get("zeroPolicy", envir = .spdepOptions)
   stopifnot(is.logical(zero.policy))
-  if (object$type == "sac") stop("no predict method for sac") # TODO: need to change # Wy et We
+  if (is.null(type)) type <- "default"
+  # check type with model
+  if (type == "default" & object$type == "sac") stop("no such predict method for sac model")
+  if (type %in% c("TC", "TS", "BP", "TS1") & object$type == "error") stop("no such predict method for error model")
+  
   if (is.null(power)) power <- object$method != "eigen"
   stopifnot(is.logical(all.data))
   stopifnot(is.logical(legacy))
@@ -72,7 +76,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   trends <- Xs %*% B
   
   if (is.null(newdata)) { # in-sample pred
-    if (is.null(type) || (type == "TS")) { # defaut predictor
+    if (type == "default" || (type == "TS")) { # defaut predictor
       res <- fitted.values(object)
       if (object$type == "error") { # We ou WX+We
         attr(res, "trend") <- as.vector(trends)
@@ -112,12 +116,12 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     }
   } else { # out-of-sample
     #CHECK
-    if (!((is.null(type) || (type == "TS")) && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
+    if (!((type == "default" || (type == "TS")) && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
         stop("mismatch between newdata and spatial weights")
-      if ((is.null(type) || (type == "TS"))) { # only need Woo
+      if ((type == "default" || (type == "TS"))) { # only need Woo
         if (any(! attr(listw, "region.id") %in% rownames(newdata))) { # for consistency, allow the use of a larger listw with in-sample data
           listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy) # TODO: need more test
           # TODO: reorder listw if newdata is not in the order of listw
@@ -176,7 +180,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       trendo <- Xo %*% B
     }
     
-    if (is.null(type) || (type == "TS")) { # defaut predictor # TODO: WARNING this code used Woo != C.Thomas TS predictor !!
+    if (type == "default" || (type == "TS")) { # defaut predictor # TODO: WARNING this code used Woo != C.Thomas TS predictor !!
       if (object$type == "error") {
         if (object$etype == "error") { # We
           signal <- rep(0, length(trendo))

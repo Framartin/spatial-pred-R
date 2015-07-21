@@ -12,11 +12,12 @@ COL.mix.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw, type="mixed")
 p1 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F)
 p1_bis = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "TS") # same call
 # X: only the trend
-p2 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "X")
+p2 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "trend")
 # TC
 p3 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "TC")
 # BP
 p4 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "BP")
+
 
 # TODO: Prediction
 
@@ -48,3 +49,8 @@ po3 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T,
 po4 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC", all.data = T) # returns for all spatial units
 #TODO: need to be check. We do not recover the same predictions. This is link to the fact that lw is used directly in the wrong order
 po5 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP")
+po6 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "trend")
+
+
+system.time(po3 <- predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC", all.data = F))
+system.time(po4 <- predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC", all.data = T))
