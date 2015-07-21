@@ -49,19 +49,21 @@ fitted.sarlm <- function(object, ...) {
 # retourne la valeur de la prédiction + un attributs trend et signal
 predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=FALSE,
                           zero.policy=NULL, legacy=TRUE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
-                          ...) {
+                          spChk=NULL, ...) {
   if (is.null(zero.policy))
     zero.policy <- get("zeroPolicy", envir = .spdepOptions)
   stopifnot(is.logical(zero.policy))
   if (is.null(type)) type <- "default"
   # check type with model
-  if (type == "default" & object$type == "sac") stop("no such predict method for sac model")
+  if (type %in% c("default", "TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
   if (type %in% c("TC", "TS", "BP", "TS1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("TC", "TS", "BP", "TS1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   
   if (is.null(power)) power <- object$method != "eigen"
   stopifnot(is.logical(all.data))
   stopifnot(is.logical(legacy))
   stopifnot(is.logical(power))
+  
   #        if (pred.se && object$type == "error") {
   #            pred.se <- FALSE
   #            warning("standard error estimates not available for error models")
@@ -76,7 +78,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   trends <- Xs %*% B
   
   if (is.null(newdata)) { # in-sample pred
-    if (type == "default" || (type == "TS")) { # defaut predictor
+    if (type == "default" || type == "TS") { # defaut predictor
       res <- fitted.values(object)
       if (object$type == "error") { # We ou WX+We
         attr(res, "trend") <- as.vector(trends)
@@ -86,42 +88,50 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         attr(res, "signal") <- as.vector( -1 * (tarys - ys))
       }
     } else { # new predictors
-      if (! type %in% c("trend", "TC", "BP")) stop("no such predictor type")
-      #TODO: lag model only? + adapt to SDM model
-      if (is.null(listw) || !inherits(listw, "listw"))
-        stop ("spatial weights list required")
-      if (nrow(Xs) != length(listw$neighbours))
-        stop("mismatch between data and spatial weights")
-      if (type == "trend") { # warning: equals to WX predictor for mixed model
-        res <- as.vector(trends)
-      } else if (type %in% c("TC", "BP")) { # need to compute TC
+      if (type != "trend") { # need listw
+        if (is.null(listw) || !inherits(listw, "listw"))
+          stop ("spatial weights list required")
+        if (nrow(Xs) != length(listw$neighbours))
+          stop("mismatch between data and spatial weights")
+        if (is.null(spChk)) spChk <- get.spChkOption()
+        if (spChk && !chkIDs(Xs, listw))
+          stop("Check of data and weights ID integrity failed")
+      }
+      
+      if (type %in% c("TC", "BP")) { # need to compute TC
         if (power){
           W <- as(listw, "CsparseMatrix")
-          TC <- powerWeights(W, rho = object$rho, X = Xs, order = order, tol = tol) %*% B # TODO: not good for SDM model!
+          TC <- powerWeights(W, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
         } else {
-          TC <- invIrW(listw, object$rho) %*% trends # TODO: not good for SDM model!
+          TC <- invIrW(listw, object$rho) %*% trends
         }
       }
-      if(type == "TC") res <- as.vector(TC)
-      if(type == "BP") {
+      
+      if (type == "trend") {
+        res <- as.vector(trends)
+      } else if(type == "TC") {
+        res <- as.vector(TC)
+      } else if(type == "BP") {
         W <- as(listw, "CsparseMatrix")
         Qss <- 1/object$s2 * (Diagonal(dim(W)[1]) - (object$rho * t(W))) %*% (Diagonal(dim(W)[1]) - (object$rho * W)) # precision matrix for LAG model
         DiagQss <- Diagonal(x = diag(Qss))
         BP <- TC - solve(DiagQss) %*% (Qss - DiagQss) %*% (ys - TC)
         # TODO: Can BP also be applied to the SEM model? Cf LeSage and Pace (2004). Note: \hat{\mu_i} need to be adapted
         res <- as.vector(BP)
+      } else {
+        stop("no such in-sample predictor type")
       }
       attr(res, "trend") <- as.vector(trends) # TODO: to be removed?
       #attr(res, "signal") <- NULL
     }
   } else { # out-of-sample
     #CHECK
-    if (!((type == "default" || (type == "TS")) && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
-      if (is.null(listw) || !inherits(listw, "listw"))
+    if (!(type == "default" & object$type == "error" & object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
+      if ((is.null(listw) || !inherits(listw, "listw")) & type != "trend")
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
         stop("mismatch between newdata and spatial weights")
-      if ((type == "default" || (type == "TS"))) { # only need Woo
+      if (type == "default") { # only need Woo
         if (any(! attr(listw, "region.id") %in% rownames(newdata))) { # for consistency, allow the use of a larger listw with in-sample data
           listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy) # TODO: need more test
           # TODO: reorder listw if newdata is not in the order of listw
@@ -180,7 +190,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       trendo <- Xo %*% B
     }
     
-    if (type == "default" || (type == "TS")) { # defaut predictor # TODO: WARNING this code used Woo != C.Thomas TS predictor !!
+    if (type == "default") { # defaut predictor # TODO: WARNING this code used Woo != C.Thomas TS1 predictor !
       if (object$type == "error") {
         if (object$etype == "error") { # We
           signal <- rep(0, length(trendo))
