@@ -280,59 +280,54 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         attr(res, "trend") <- c(trendo)
         attr(res, "signal") <- c(signal)
       }
-    } else {
-      if (type %in% c("TS1", "KP2")) {
+    } else { # new predictors
+      if (type %in% c("TS1", "KP4", "KP2")) { # need to compute TS1/KP4
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
         TS1 <- Xo %*% B + object$rho * Wos %*% ys # TODO: what to todo when a same spatial unit is on newdata and on data
-        if (type == "TS1") {
-          res <- as.vector(TS1)
-          #TODO: trend and signal
-        } else { # KP2
-          #TODO
-          #KP2 <- TS1 + 
-        }
-      } else { # not leave-one-out
-        if (type %in% c("TC", "BP")) { # need to compute TC
-          #notations of C.Thomas and al (2015)
-          if (all.data | type == "BP") {
-            # compute s and o units together
-            X <- rbind(Xs, Xo)
-            trend <- X %*% B
-            if (power){
-              W <- as(listw, "CsparseMatrix")
-              TC <- powerWeights(W, rho = object$rho, X = X, order = order, tol = tol) %*% B
-            } else {
-              TC <- invIrW(listw, object$rho) %*% trend
-            }
-            # TODO: performances test to know if computing TCo and TCs is quicker than computing TC
-          } else { # TCo = TC for out-of-sample spatial units
-            listw.d = .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
-            Wss <- listw.d$Wss
-            Wso <- listw.d$Wso
-            Wos <- listw.d$Wos
-            Woo <- listw.d$Woo
-            mB <- - object$rho * Wso
-            mC <- - object$rho * Wos
-            mD <- Diagonal(dim(Woo)[1]) - object$rho * Woo
-            if (power){
-              mAInvXsB <- powerWeights(Wss, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
-              mAInvmB <- powerWeights(Wss, rho = object$rho, X = mB, order = order, tol = tol)
-              E <- solve(mD - mC %*% mAInvmB)
-              TCo <- - E %*% mC %*% mAInvXsB + E %*% Xo %*% B
-            } else {
-              # manually without using invIrW, because it use method="solve" by default, but accept only a listw object. 
-              mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
-              mAInv <- solve(mA)
-              E <- solve(mD - mC %*% mAInv %*% mB)
-              TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
-            }
+      }
+      if (type %in% c("TC", "BP")) { # need to compute TC
+        #notations of C.Thomas and al (2015)
+        if (all.data | type == "BP") {
+          # compute s and o units together
+          X <- rbind(Xs, Xo)
+          trend <- X %*% B
+          if (power){
+            W <- as(listw, "CsparseMatrix")
+            TC <- powerWeights(W, rho = object$rho, X = X, order = order, tol = tol) %*% B
+          } else {
+            TC <- invIrW(listw, object$rho) %*% trend
+          }
+          # TODO: performances test to know if computing TCo and TCs is quicker than computing TC
+        } else { # TCo = TC for out-of-sample spatial units
+          listw.d = .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
+          Wss <- listw.d$Wss
+          Wso <- listw.d$Wso
+          Wos <- listw.d$Wos
+          Woo <- listw.d$Woo
+          mB <- - object$rho * Wso
+          mC <- - object$rho * Wos
+          mD <- Diagonal(dim(Woo)[1]) - object$rho * Woo
+          if (power){
+            mAInvXsB <- powerWeights(Wss, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
+            mAInvmB <- powerWeights(Wss, rho = object$rho, X = mB, order = order, tol = tol)
+            E <- solve(mD - mC %*% mAInvmB)
+            TCo <- - E %*% mC %*% mAInvXsB + E %*% Xo %*% B
+          } else {
+            # manually without using invIrW, because it use method="solve" by default, but accept only a listw object. 
+            mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
+            mAInv <- solve(mA)
+            E <- solve(mD - mC %*% mAInv %*% mB)
+            TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
           }
         }
       }
+      
       if (type == "trend") {
         res <- as.vector(trendo)
+      } else if (type %in% c("TS1", "KP4")) {
+        res <- as.vector(TS1)
       } else if (type == "TC") {
         if(all.data) {
           res <- as.vector(TC)
@@ -350,6 +345,27 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         Qos <- Q[is.newdata, is.data]
         BPo <- TCo - solve(Qoo) %*% Qos %*% (ys - TCs)
         res <- as.vector(BPo)
+      } else if (type %in% c("TC1", "KP1")) {
+        #TODO: use the definition of TCo of C.Thomas applied in the leave-one-out case: quicker?
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
+        region.id.data <- attr(ys, "names")
+        region.id.newdata <- rownames(newdata)
+        res <- rep(NA, nrow(newdata))
+        W <- as(listw, "CsparseMatrix")
+        for (i in 1:nrow(newdata)) {
+          region.id.temp <- c(region.id.data, region.id.newdata[i])
+          Wi <- W[region.id.temp, region.id.temp]
+          Xi <- rbind(Xs, Xo[i,])
+          if (power) {
+            res[i] <- c(as(powerWeights(Wi, rho=object$rho, X=Xi, order=order, tol=tol), "matrix") %*% B)[length(region.id.temp)]
+          } else {
+            n <- dim(Wi)[1]
+            mat <- diag(n) - object$rho * Wi
+            trendi <- c(trends, trendo[i])
+            res[i] <- (solve(mat) %*% trendi)[length(region.id.temp)]
+          }
+        }
       } else {
         stop("unknow predictor type")
       }
