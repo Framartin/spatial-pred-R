@@ -126,7 +126,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     }
   } else { # out-of-sample
     #CHECK
-    if (!(type == "default" & object$type == "error" & object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
+    if (!(type == "default" && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
       if ((is.null(listw) || !inherits(listw, "listw")) & type != "trend")
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
