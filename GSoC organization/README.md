@@ -34,7 +34,7 @@ Solutions are under questions.
 * How we ensure that the order of the spatial units in listw is the same than newdata?
   + see all methods for creating listw objects. 
 * Is it possible to reorder spatial unit in a listw object? If not, I think we can work with only W in SparseMatrix, but it will imply modifications.
-  + Easy solution: convert to Sparse Matrix and subset&order. But not efficient. For other solution: see spChk option and functions of spChkOption.R
+  + Easy solution: convert to Sparse Matrix and subset&order. But not efficient. For other solution: see spChk option and functions of spChkOption.R (e.g chkIDs())
 * No Trend-Signal decomposition for the SAC model?
   + No
 * What is aliased coef?
@@ -55,8 +55,15 @@ Solutions are under questions.
 
 ## 4th progress report
 
+23/07/2015
 
-* Read ref 7.
+* Read ref 7
+* Important clean of the code of sarlm.R (including listw issues previously described, re-organization, clean checks, fix TS not defined for out-of-sample, etc.)
+* Add TC1/KP1 & trend predictor types
+* Add KP4 alias for TS1 predictor type (same definition)
+* Add spChk option
+* Update examples
+* Fix minor bugs
 
 
 ## TODO
