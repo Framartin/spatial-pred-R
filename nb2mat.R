@@ -37,12 +37,16 @@ invIrM <- function(neighbours, rho, glist=NULL, style="W", method="solve",
 		method=method, feasible=feasible)
 }
 
-invIrW <- function(listw, rho, method="solve", feasible=NULL) {
-	if(!inherits(listw, "listw")) stop("Not a weights list")
-	n <- length(listw$neighbours)
-	V <- listw2mat(listw)
+invIrW <- function(x, rho, method="solve", feasible=NULL) {
+	if(inherits(x, "listw")) {
+	  n <- length(listw$neighbours)
+	  V <- listw2mat(x)
+	} else if (inherits(x, "Matrix") || inherits(x, "matrix")) {
+	  if (method == "chol") stop("No Cholesky method for matrix or sparse matrix object")
+    n <- dim(x)[1]
+    V <- x
+	} else stop("Not a weights list or a Sparse Matrix")
 	if (is.null(feasible) || (is.logical(feasible) && !feasible)) {
-		V <- listw2mat(listw)
 		e <- eigen(V, only.values = TRUE)$values
 		if (is.complex(e)) feasible <- 1/(range(Re(e)))
 		else feasible <- 1/(range(e))
