@@ -39,7 +39,7 @@ invIrM <- function(neighbours, rho, glist=NULL, style="W", method="solve",
 
 invIrW <- function(x, rho, method="solve", feasible=NULL) {
 	if(inherits(x, "listw")) {
-	  n <- length(listw$neighbours)
+	  n <- length(x$neighbours)
 	  V <- listw2mat(x)
 	} else if (inherits(x, "Matrix") || inherits(x, "matrix")) {
 	  if (method == "chol") stop("No Cholesky method for matrix or sparse matrix object")
@@ -55,13 +55,13 @@ invIrW <- function(x, rho, method="solve", feasible=NULL) {
                         paste(feasible, collapse=":")))
 	}
 	if (method == "chol"){
-		if (listw$style %in% c("W", "S") && !(can.be.simmed(listw)))
+		if (x$style %in% c("W", "S") && !(can.be.simmed(x)))
 			stop("Cholesky method requires symmetric weights")
-		if (listw$style %in% c("B", "C", "U") && 
-			!(is.symmetric.glist(listw$neighbours, listw$weights)))
+		if (x$style %in% c("B", "C", "U") && 
+			!(is.symmetric.glist(x$neighbours, x$weights)))
 			stop("Cholesky method requires symmetric weights")
-		if (listw$style %in% c("W", "S")) {
-			V <- listw2mat(listw2U(similar.listw(listw)))
+		if (x$style %in% c("W", "S")) {
+			V <- listw2mat(listw2U(similar.listw(x)))
 		}
 		mat <- diag(n) - rho * V
 		res <- chol2inv(chol(mat))
