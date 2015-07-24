@@ -126,11 +126,12 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     }
   } else { # out-of-sample
     #CHECK
+    if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
     if (!(type == "default" && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
       if ((is.null(listw) || !inherits(listw, "listw")) & type != "trend")
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
-        stop("mismatch between newdata and spatial weights")
+        stop("mismatch between newdata and spatial weights. newdata should have region.id as rownames")
       if (type == "default") { # only need Woo
         if (any(! attr(listw, "region.id") %in% rownames(newdata))) { # for consistency, allow the use of a larger listw with in-sample data
           listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy) # TODO: need more test
@@ -241,7 +242,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         #                        }
         attr(res, "trend") <- c(trendo)
         attr(res, "signal") <- c(signal)
-      } else { # Wy (TODO: when we will allow predict for SAC, make sure we have an error here)
+      } else { # Wy
         if (power) {
           W <- as(listw, "CsparseMatrix")
           res <- c(as(powerWeights(W, rho=object$rho,
@@ -315,9 +316,9 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
             E <- solve(mD - mC %*% mAInvmB)
             TCo <- - E %*% mC %*% mAInvXsB + E %*% Xo %*% B
           } else {
-            # manually without using invIrW, because it use method="solve" by default, but accept only a listw object. 
-            mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
-            mAInv <- solve(mA)
+            #mA <- Diagonal(dim(Wss)[1]) - object$rho * Wss
+            #mAInv <- solve(mA)
+            mAInv <- invIrW(Wss, object$rho)
             E <- solve(mD - mC %*% mAInv %*% mB)
             TCo <- - E %*% mC %*% mAInv %*% Xs %*% B + E %*% Xo %*% B
           }
@@ -360,10 +361,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           if (power) {
             res[i] <- c(as(powerWeights(Wi, rho=object$rho, X=Xi, order=order, tol=tol), "matrix") %*% B)[length(region.id.temp)]
           } else {
-            n <- dim(Wi)[1]
-            mat <- diag(n) - object$rho * Wi
             trendi <- c(trends, trendo[i])
-            res[i] <- (solve(mat) %*% trendi)[length(region.id.temp)]
+            res[i] <- (invIrW(Wi, object$rho) %*% trendi)[length(region.id.temp)]
           }
         }
       } else {
@@ -372,6 +371,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     }
   }
   attr(res, "type") <- type
+  attr(res, "call") <- match.call()
   class(res) <- "sarlm.pred"
   res
 }
