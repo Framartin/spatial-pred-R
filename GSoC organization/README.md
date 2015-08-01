@@ -74,13 +74,13 @@ Solutions are under questions.
 * Add spChk option for out-of-sample
 * Clean some old TODOs
 * add region.id attribute in sarlm.pred class which is passed to rownames in as.data.frame.sarlm.pred()
+* warning if spatial units are on newdata and data
 
 ## TODO
 
 * contact C. Thomas: questions sent. Waiting for her advices on SEM model, code for EM approach, and corrections of her paper
 * merge code from spatial-pred-r (need adaptations)
 * WARNING: newdata != prediction of out-of-sample spatial units. How to deal with the difference between out-of-sample prediction (in the sense of C.Thomas et al. (2015)) and prevision: both have newdata. Does the second case need in-sample predictors?
-* warnings if spatial units are on newdata and data
 * work on splm & spdep
 * update invIrW() documentation
 * IMPORTANT BUG: Error of computation of WXo: shloud we compute WoXo or out-of-sample row of WX? Should we keep the ex behavior, ie WoXo? Only with legacy=TRUE?

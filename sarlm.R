@@ -127,6 +127,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   } else { # out-of-sample
     #CHECK
     if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
+    if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
     if (!(type == "default" && object$type == "error" && object$etype == "error") && type != "trend") { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
@@ -149,6 +150,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           W <- W[region.id, region.id]
           style <- listw$style
           listw <- mat2listw(W, row.names = region.id, style = style) # re-normalize to keep the style
+          rm(W) # avoid the use of a wrong W
           #W <- as(listw, "CsparseMatrix")
         }
       }
