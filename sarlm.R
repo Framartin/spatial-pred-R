@@ -143,13 +143,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       if (length(region.id) != length(attr(listw, "region.id")) || !all(region.id == attr(listw, "region.id"))) { # if listw is not directly ok
         if (all(subset(attr(listw, "region.id"), attr(listw, "region.id") %in% region.id) == region.id)) { # only need a subset.listw, ie. spatial units are in the right order
           listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy)
-          W <- as(listw, "CsparseMatrix")
+          #W <- as(listw, "CsparseMatrix")
         } else { # we use a sparse matrix transformation to reorder a listw
           W <- as(listw, "CsparseMatrix")
           W <- W[region.id, region.id]
           style <- listw$style
           listw <- mat2listw(W, row.names = region.id, style = style) # re-normalize to keep the style
-          W <- as(listw, "CsparseMatrix")
+          #W <- as(listw, "CsparseMatrix")
         }
       }
       #optional check
@@ -226,6 +226,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         } else stop("unkown error model etype")
       } else if (object$type == "mixed") { # Wy+WX
         if (power) {
+          W <- as(listw, "CsparseMatrix")
           res <- c(as(powerWeights(W, rho=object$rho,
                                    X=trendo, order=order, tol=tol), "matrix"))
         } else { # calcul de (I - rho*W)^-1 en inversant la matrice
