@@ -127,19 +127,41 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   } else { # out-of-sample
     #CHECK
     if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
-    if (!(type == "default" && object$type == "error" && object$etype == "error")) { # need of listw (ie. not in the case of defaut predictor and SEM model)
-      if ((is.null(listw) || !inherits(listw, "listw")) & type != "trend")
+    if (!(type == "default" && object$type == "error" && object$etype == "error") && type != "trend") { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type)
+      if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
         stop("mismatch between newdata and spatial weights. newdata should have region.id as rownames")
+      
+      #TODO: add the case when we decompose W in Woo, Wso, Wos and Wss
+      
+      # wanted order of the listw
       if (type == "default") { # only need Woo
-        if (any(! attr(listw, "region.id") %in% rownames(newdata))) { # for consistency, allow the use of a larger listw with in-sample data
-          listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy) # TODO: need more test
-          # TODO: reorder listw if newdata is not in the order of listw
+        region.id <- rownames(newdata)
+      } else {
+        region.id <- c(attr(ys, "names"), rownames(newdata))
+      }
+      
+      if (length(region.id) != length(attr(listw, "region.id")) || !all(region.id == attr(listw, "region.id"))) { # if listw is not directly ok
+        if (all(subset(attr(listw, "region.id"), attr(listw, "region.id") %in% region.id) == region.id)) { # only need a subset.listw, ie. spatial units are in the right order
+          listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy)
+          W <- as(listw, "CsparseMatrix")
+        } else { # we use a sparse matrix transformation to reorder a listw
+          W <- as(listw, "CsparseMatrix")
+          W <- W[region.id, region.id]
+          style <- listw$style
+          listw <- mat2listw(W, row.names = region.id, style = style) # re-normalize to keep the style
+          W <- as(listw, "CsparseMatrix")
         }
       }
-      #...
+      #optional check
+      if (is.null(spChk)) spChk <- get.spChkOption()
+      names(region.id) <- region.id
+      if (spChk && !chkIDs(temp, listw))
+        stop("Check of data and weights ID integrity failed")
     }
+    
+
     
     # DATA
     frm <- formula(object$call)
@@ -151,7 +173,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       stop("missing values in newdata")
     Xo <- model.matrix(mt, mf)
     
-    #TODO: skip if no need of listw
     if (sum(object$type == "mixed", object$etype == "mixed" )>0) { # mixed model: compute WXo # Fix bug if object$etype doesn't exist
       K <- ifelse(colnames(Xo)[1] == "(Intercept)", 2, 1)
       m <- ncol(Xo)
@@ -206,7 +227,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         } else stop("unkown error model etype")
       } else if (object$type == "mixed") { # Wy+WX
         if (power) {
-          W <- as(listw, "CsparseMatrix")
           res <- c(as(powerWeights(W, rho=object$rho,
                                    X=trendo, order=order, tol=tol), "matrix"))
         } else { # calcul de (I - rho*W)^-1 en inversant la matrice
@@ -385,7 +405,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     stop("at least one region.id in data is not in listw object")
   if (!all(region.id.newdata %in% region.id))
     stop("at least one region.id in newdata is not in listw object")
-  if (!all(type %in% c("Wss", "Wos", "Wso", "Woo"))) #TODO: better way to do?
+  if (!all(type %in% c("Wss", "Wos", "Wso", "Woo")))
     stop("type is incorrect")
   W <- as(listw, "CsparseMatrix")
   s <- list(Wss = NULL, Wos = NULL, Wso = NULL, Woo = NULL)
