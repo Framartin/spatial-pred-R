@@ -29,7 +29,7 @@ Notes on the previous references:
 2. Description of the previous version of `predict.sarlm()`. The `pred.sarlm` class may have to change.
 3. Using its notations for new predictors. Using a different approach for predictors: for `mixed` models we include WX in the X matrix object. Our goal is to include this custom function `sppred()` into the `predict.sarlm()` framework.
 4. Prediction with a log-transformed variable on SEM model. Anti-log transformation is biased: proposal of 4 other predictors to correct (partially or completely) this bias
-5. 3 optimal predictors for the SAC model, based on 3 different information sets + 2 intuitive predictor (with one for the error model)
+5. 3 optimal predictors for the SAC model, based on 3 different information sets + 2 intuitive predictors (with one for the error model)
 6. TODO: BPn predictor for SEM model?
 
 

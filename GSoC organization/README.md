@@ -63,8 +63,15 @@ Solutions are under questions.
 * Add KP4 alias for TS1 predictor type (same definition)
 * Add spChk option
 * Update examples
+* Add error if newdata as no rownames
+* Add call attribute
+* Add support of matrix/Matrix argument for invIrW()
 * Fix minor bugs
 
+## 5th progress report
+
+* Checks and fix issues with W and listw for out-of-sample
+* Add spChk option for out-of-sample
 
 ## TODO
 
@@ -75,4 +82,5 @@ Solutions are under questions.
 * warnings if spatial units are on newdata and data
 * add spatial units names for rows
 * work on splm & spdep
-
+* update invIrW() documentation
+* IMPORTANT BUG: Error of computation of WXo: shloud we compute WoXo or out-of-sample row of WX? Should we keep the ex behavior, ie WoXo? Only with legacy=TRUE?

@@ -1,5 +1,7 @@
 library(spdep)
 source("sarlm.R")
+source("nb2mat.R")
+
 
 data(oldcol)
 lw <- nb2listw(COL.nb)
