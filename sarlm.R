@@ -121,9 +121,9 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       } else {
         stop("no such in-sample predictor type")
       }
-      attr(res, "trend") <- as.vector(trends) # TODO: to be removed?
-      #attr(res, "signal") <- NULL
+      if (type != "trend") attr(res, "trend") <- as.vector(trends)
     }
+    attr(res, "region.id") <- as.vector(attr(ys, "names"))
   } else { # out-of-sample
     #CHECK
     if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
@@ -132,8 +132,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
         stop("mismatch between newdata and spatial weights. newdata should have region.id as rownames")
-      
-      #TODO: add the case when we decompose W in Woo, Wso, Wos and Wss
       
       # wanted order of the listw
       if (type == "default") { # only need Woo
@@ -156,12 +154,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       }
       #optional check
       if (is.null(spChk)) spChk <- get.spChkOption()
-      names(region.id) <- region.id
+      temp <- rep(NA, length(region.id))
+      names(temp) <- region.id
       if (spChk && !chkIDs(temp, listw))
         stop("Check of data and weights ID integrity failed")
     }
     
-
+    
     
     # DATA
     frm <- formula(object$call)
@@ -306,7 +305,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
-        TS1 <- Xo %*% B + object$rho * Wos %*% ys # TODO: what to todo when a same spatial unit is on newdata and on data
+        TS1 <- Xo %*% B + object$rho * Wos %*% ys
       }
       if (type %in% c("TC", "BP")) { # need to compute TC
         #notations of C.Thomas and al (2015)
@@ -358,8 +357,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       } else if (type == "BP") {
         is.data <- 1:length(ys)
         is.newdata <- (length(ys)+1):length(TC)
-        TCo <- TC[is.newdata] # TODO: need to check after modifs on TC: in-sample should be first and then out-of-sample 
-        TCs <- TC[is.data] # TODO: idem
+        TCo <- TC[is.newdata]
+        TCs <- TC[is.data]
         W <- as(listw, "CsparseMatrix")
         Q <- 1/object$s2 * ( Diagonal(dim(W)[1]) - object$rho * (t(W) + W) + object$rho^2 * (t(W) %*% W) )
         Qoo <- Q[is.newdata, is.newdata]
@@ -389,6 +388,12 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         stop("unknow predictor type")
       }
     }
+    # add region.id attribute
+    if (length(res) == nrow(newdata)) {
+      attr(res, "region.id") <- as.vector(rownames(newdata))
+    } else if (length(res) == length(ys)+nrow(newdata)) {
+      attr(res, "region.id") <- c(attr(ys, "names"), rownames(newdata))
+    } else stop("incorrect final output")
   }
   attr(res, "type") <- type
   attr(res, "call") <- match.call()
@@ -418,9 +423,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   if ("Woo" %in% type)
     s$Woo <- W[region.id.newdata, region.id.newdata]
   return(s)
-  # TODO: be careful when region.id names cannot be the names of a sparse matrix
-  # becareful to the order of rows and columns in the sparse matrix when we used it
-  # TODO: what to do if region.id.newdata is included in region.id.data. Include it, or remove it from data?
 }
 
 
@@ -436,6 +438,7 @@ as.data.frame.sarlm.pred <- function(x, ...) {
   #        signal=attr(x, "signal"))
   #fix bug when no signal or trend attributes
   res <- data.frame(fit=as.vector(x))
+  if(!is.null(attr(x, "region.id"))) rownames(res) <- attr(x, "region.id")
   if(!is.null(attr(x, "trend"))) res$trend <- attr(x, "trend")
   if(!is.null(attr(x, "signal"))) res$signal <- attr(x, "signal")
   res
