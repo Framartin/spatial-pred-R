@@ -70,12 +70,27 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   #        }
   #        if (pred.se && is.null(lagImpact))
   #            stop("lagImpact object from impact method required for standard error estimate")
+  
   Xs <- object$X
   B <- object$coefficients
   ys <- object$y
   tarXs <- object$tarX
   tarys <- object$tary
   trends <- Xs %*% B
+  
+  # prevision case: newdata with the same names than data
+  # use a sub-samble of in-sample predictors
+  if (!is.null(newdata) && nrow(newdata) == length(ys) && rownames(newdata) == attr(ys, "names")) {
+    if (!type %in% c("trend", "TC")) warning("no such predictor type for prevision")
+    Xs <- newdata
+    # DATA
+    #TODO
+    #
+    tarXs <- tarys <- NULL
+    trends <- Xs %*% B
+    newdata <- NULL
+  }
+  
   
   if (is.null(newdata)) { # in-sample pred
     if (type == "default" || type == "TS") { # defaut predictor
@@ -174,7 +189,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       stop("missing values in newdata")
     Xo <- model.matrix(mt, mf)
     
-    if (sum(object$type == "mixed", object$etype == "mixed" )>0) { # mixed model: compute WXo # Fix bug if object$etype doesn't exist
+    if (object$type == "mixed" || (object$type == "error" && object$etype == "emixed")) { # mixed model: compute WXo
       K <- ifelse(colnames(Xo)[1] == "(Intercept)", 2, 1)
       m <- ncol(Xo)
       # check if there are enough regressors
@@ -202,18 +217,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         } 
       }   
       Xo <- cbind(Xo, WXo)
-      #  accommodate aliased coefficients 120314
-      if (any(object$aliased))
-        Xo <- Xo[,-which(object$aliased)]
-      trendo <- Xo %*% B
-    } else {
-      #  accommodate aliased coefficients 120314
-      if (any(object$aliased))
-        Xo <- Xo[,-which(object$aliased)]
-      trendo <- Xo %*% B
     }
+    #  accommodate aliased coefficients 120314
+    if (any(object$aliased))
+      Xo <- Xo[,-which(object$aliased)]
+    trendo <- Xo %*% B
     
-    if (type == "default") { # defaut predictor # TODO: WARNING this code used Woo != C.Thomas TS1 predictor !
+    if (type == "default") { # defaut predictor
       if (object$type == "error") {
         if (object$etype == "error") { # We
           signal <- rep(0, length(trendo))
