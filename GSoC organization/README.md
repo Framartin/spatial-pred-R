@@ -75,6 +75,7 @@ Solutions are under questions.
 * Clean some old TODOs
 * add region.id attribute in sarlm.pred class which is passed to rownames in as.data.frame.sarlm.pred()
 * warning if spatial units are on newdata and data
+* add the prevision case for some in-sample predictor
 
 ## TODO
 
@@ -84,3 +85,4 @@ Solutions are under questions.
 * work on splm & spdep
 * update invIrW() documentation
 * IMPORTANT BUG: Error of computation of WXo: shloud we compute WoXo or out-of-sample row of WX? Should we keep the ex behavior, ie WoXo? Only with legacy=TRUE?
+* Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)

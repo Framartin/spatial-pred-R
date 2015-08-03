@@ -38,6 +38,10 @@ listw.d = .listw.decompose(listw, region.id.data, region.id.newdata, type = c("W
 data = COL.OLD[!rownames(COL.OLD) %in% c("1042", "1043", "1044", "1045"), ]
 listw.sub <- subset(listw, !region.id %in% c("1042", "1043", "1044", "1045"))
 COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=data, listw.sub)
+COL.errW.eig <- errorsarlm(CRIME ~ INC + HOVAL, data=data, listw.sub)
+COL.SDEMW.eig <- errorsarlm(CRIME ~ INC + HOVAL, data=data, listw.sub, etype = "emixed")
+
+
 
 newdata = COL.OLD[c("1042", "1043", "1044", "1045"), c("INC", "HOVAL")]
 newdata = COL.OLD[c("1042", "1043", "1044", "1045"), ] # work with newdata having other columns in a different order than formula
