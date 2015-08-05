@@ -13,31 +13,32 @@ model objects, using Haining's terminology for decomposition into
 trend, signal, and noise --- see reference.
 }
 \usage{
-\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type=NULL, all.data=FALSE,
- zero.policy = NULL, legacy=TRUE, power=NULL, order=250,
- tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
- ...)
+\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = NULL, all.data = FALSE,
+ zero.policy = NULL, legacy = TRUE, legacy.mixed = FALSE, power = NULL, order = 250,
+ tol = .Machine$double.eps^(3/5), spChk = NULL, ...)
 \method{print}{sarlm.pred}(x, ...)
 \method{as.data.frame}{sarlm.pred}(x, ...)
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
-  \item{object}{\code{sarlm} object returned by \code{lagsarlm} or 
-\code{errorsarlm}}
-  \item{newdata}{Data frame in which to predict --- if NULL, predictions are
-for the data on which the model was fitted}
-  \item{listw}{a \code{listw} object created for example by \code{nb2listw}}
+  \item{object}{\code{sarlm} object returned by \code{lagsarlm}, 
+\code{errorsarlm} or \code{sacsarlm}}
+  \item{newdata}{data frame in which to predict --- if NULL, predictions are
+for the data on which the model was fitted.  See \sQuote{Details}}
+  \item{listw}{a \code{listw} object created for example by \code{nb2listw}.  See \sQuote{Details}}
   \item{type}{default NULL (or if type = "TS"), use decomposition into
-trend, signal, and noise ; "X" "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL}
-  \item{all.data}{(Only applies if type="TC" and newdata not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units (see details)}
+trend, signal, and noise ; "X" "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL.  See \sQuote{Details}}
+  \item{all.data}{(only applies if type="TC" and newdata not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
   \item{legacy}{(Only applies to lag and Durbin (mixed) models) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
+  \item{legacy.mixed}{(Only applies to mixed models) default FALSE: compute lagged variables with \eqn{[W X]_O}{[WX]o} where W = \eqn{\begin{bmatrix} X_S \\ X_O \end{bmatrix}}{TODO}, if TRUE compute lagged variables with \eqn{W_{OO} X_O}{Woo Xo}}
   \item{power}{(Only applies to lag and Durbin (mixed) models) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
-  \item{order}{Power series maximum limit if \code{power} is TRUE}
-   \item{tol}{Tolerance for convergence of power series if \code{power} is TRUE}
-   \item{x}{the object to be printed}
+  \item{order}{power series maximum limit if \code{power} is TRUE}
+  \item{tol}{tolerance for convergence of power series if \code{power} is TRUE}
+  \item{spChk}{should the rownames of data frames be checked against the spatial objects for identity integrity, TRUE, or FALSE, default NULL to use \code{get.spChkOption()}}
+  \item{x}{the object to be printed}
 %   \item{pred.se}{logical, default FALSE, not available for error models}
 %   \item{lagImpact}{object created by \code{impacts} with R sample draws from the fitted model}
   \item{...}{further arguments passed through}
