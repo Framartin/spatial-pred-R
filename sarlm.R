@@ -48,7 +48,7 @@ fitted.sarlm <- function(object, ...) {
 
 # retourne la valeur de la prédiction + un attributs trend et signal
 predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=FALSE,
-                          zero.policy=NULL, legacy=TRUE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
+                          zero.policy=NULL, legacy=TRUE, legacy.mixed=FALSE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
                           spChk=NULL, ...) {
   if (is.null(zero.policy))
     zero.policy <- get("zeroPolicy", envir = .spdepOptions)
@@ -62,7 +62,9 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   if (is.null(power)) power <- object$method != "eigen"
   stopifnot(is.logical(all.data))
   stopifnot(is.logical(legacy))
+  stopifnot(is.logical(legacy.mixed))
   stopifnot(is.logical(power))
+  if (is.null(spChk)) spChk <- get.spChkOption()
   
   #        if (pred.se && object$type == "error") {
   #            pred.se <- FALSE
@@ -108,7 +110,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           stop ("spatial weights list required")
         if (nrow(Xs) != length(listw$neighbours))
           stop("mismatch between data and spatial weights")
-        if (is.null(spChk)) spChk <- get.spChkOption()
         if (spChk && !chkIDs(Xs, listw))
           stop("Check of data and weights ID integrity failed")
       }
@@ -143,34 +144,33 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     #CHECK
     if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
     if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
-    if (!(type == "default" && object$type == "error" && object$etype == "error") && type != "trend") { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type)
+    if (!(type == "default" && object$type == "error" && object$etype == "error") && type != "trend" && object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type, nor mixed models)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
         stop("mismatch between newdata and spatial weights. newdata should have region.id as rownames")
+      listw.old <- NULL
       
       # wanted order of the listw
       if (type == "default") { # only need Woo
         region.id <- rownames(newdata)
+        if (!legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from the full WX
       } else {
         region.id <- c(attr(ys, "names"), rownames(newdata))
       }
       
       if (length(region.id) != length(attr(listw, "region.id")) || !all(region.id == attr(listw, "region.id"))) { # if listw is not directly ok
         if (all(subset(attr(listw, "region.id"), attr(listw, "region.id") %in% region.id) == region.id)) { # only need a subset.listw, ie. spatial units are in the right order
-          listw <- subset.listw(listw, (attr(listw, "region.id") %in% rownames(newdata)), zero.policy = zero.policy)
-          #W <- as(listw, "CsparseMatrix")
+          listw <- subset.listw(listw, (attr(listw, "region.id") %in% region.id), zero.policy = zero.policy)
         } else { # we use a sparse matrix transformation to reorder a listw
           W <- as(listw, "CsparseMatrix")
           W <- W[region.id, region.id]
           style <- listw$style
           listw <- mat2listw(W, row.names = region.id, style = style) # re-normalize to keep the style
           rm(W) # avoid the use of a wrong W
-          #W <- as(listw, "CsparseMatrix")
         }
       }
       #optional check
-      if (is.null(spChk)) spChk <- get.spChkOption()
       temp <- rep(NA, length(region.id))
       names(temp) <- region.id
       if (spChk && !chkIDs(temp, listw))
@@ -190,33 +190,67 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     Xo <- model.matrix(mt, mf)
     
     if (object$type == "mixed" || (object$type == "error" && object$etype == "emixed")) { # mixed model: compute WXo
-      K <- ifelse(colnames(Xo)[1] == "(Intercept)", 2, 1)
-      m <- ncol(Xo)
+      # prepare listw for computation of lagged variables
+      if (legacy.mixed) { # compute WooXo
+        X <- Xo
+        region.id.mixed <- rownames(Xo)
+      } else { # compute [WX]o
+        X <- rbind(Xs, Xo)
+        region.id.mixed <- rownames(X)
+      }
+      if (is.null(listw.old)) listw.mixed <- listw
+      else listw.mixed <- listw.old
+      if (length(region.id.mixed) != length(attr(listw.mixed, "region.id")) || !all(region.id.mixed == attr(listw.mixed, "region.id"))) { # if listw is not directly ok
+        if (all(subset(attr(listw.mixed, "region.id"), attr(listw.mixed, "region.id") %in% region.id.mixed) == region.id.mixed)) { # only need a subset.listw, ie. spatial units are in the right order
+          listw.mixed <- subset.listw(listw.mixed, (attr(listw.mixed, "region.id") %in% region.id.mixed, zero.policy = zero.policy)
+        } else { # we use a sparse matrix transformation to reorder a listw
+          W <- as(listw.mixed, "CsparseMatrix")
+          W <- W[region.id.mixed, region.id.mixed]
+          style <- listw.mixed$style
+          listw.mixed <- mat2listw(W, row.names = region.id.mixed, style = style) # re-normalize to keep the style
+          rm(W) # avoid the use of a wrong W
+        }
+      }
+      #optional check
+      temp <- rep(NA, length(region.id.mixed))
+      names(temp) <- region.id.mixed
+      if (spChk && !chkIDs(temp, listw.mixed))
+        stop("Check of data and weights ID integrity failed")
+      
+      K <- ifelse(colnames(X)[1] == "(Intercept)", 2, 1)
+      m <- ncol(X)
       # check if there are enough regressors
       if (m > 1) {
-        WXo <- matrix(nrow=nrow(Xo),ncol=(m-(K-1)))
+        WX <- matrix(nrow=nrow(X),ncol=(m-(K-1)))
         for (k in K:m) {
-          wx <- lag.listw(listw, Xo[,k], 
+          wx <- lag.listw(listw.mixed, X[,k], 
                           zero.policy=zero.policy)
           if (any(is.na(wx)))
             stop("NAs in lagged independent variable")
-          WXo[,(k-(K-1))] <- wx
+          WX[,(k-(K-1))] <- wx
         }
       }
       if (K == 2) {
         # unnormalized weight matrices
-        if (!(listw$style == "W")) {
-          intercept <- as.double(rep(1, nrow(Xo)))
-          wx <- lag.listw(listw, intercept, 
+        if (!(listw.mixed$style == "W")) {
+          intercept <- as.double(rep(1, nrow(X)))
+          wx <- lag.listw(listw.mixed, intercept, 
                           zero.policy = zero.policy)
           if (m > 1) {
-            WXo <- cbind(wx, WXo)
+            WX <- cbind(wx, WX)
           } else {
-            WXo <- matrix(wx, nrow = nrow(Xo), ncol = 1)
+            WX <- matrix(wx, nrow = nrow(X), ncol = 1)
           }
         } 
-      }   
-      Xo <- cbind(Xo, WXo)
+      }
+      if (legacy.mixed) Xo <- cbind(Xo, WX)
+      else {
+        WXo <- WX[(length(ys)+1):nrow(WXo),]
+        Xo <- cbind(Xo, WXo)
+        WXs <- WX[1:length(ys),]
+        #Xs <- #TODO: detect from colnames "lag." grepl("^lag\\.", c("lag.test", "test", "testlag.test", "lag.lag.test")) ; or from position of columns
+      }
+      rm(list = c("listw.mixed", "region.id.mixed", "X"))
     }
     #  accommodate aliased coefficients 120314
     if (any(object$aliased))
