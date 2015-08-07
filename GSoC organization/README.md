@@ -70,12 +70,21 @@ Solutions are under questions.
 
 ## 5th progress report
 
+04/08/2015
+
 * Checks and fix issues with W and listw for out-of-sample
 * Add spChk option for out-of-sample
 * Clean some old TODOs
 * add region.id attribute in sarlm.pred class which is passed to rownames in as.data.frame.sarlm.pred()
 * warning if spatial units are on newdata and data
-* add the prevision case for some in-sample predictor
+* minor changes
+
+## 6th progress report
+
+* fix computation of lagged variables
+* add the prevision case for some in-sample predictor (incomplete)
+* documentation update
+* minor changes
 
 ## TODO
 
