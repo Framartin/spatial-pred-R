@@ -144,7 +144,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     #CHECK
     if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
     if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
-    if (!(type == "default" && object$type == "error" && object$etype == "error") && type != "trend" && object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type, nor mixed models)
+    if (!(type == "default" && object$type == "error" && object$etype == "error") && !(type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
@@ -178,7 +178,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     }
     
     
-    
     # DATA
     frm <- formula(object$call)
     mt <- delete.response(terms(frm, data=newdata)) # returns a terms object for the same model but with no response variable
@@ -189,20 +188,29 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       stop("missing values in newdata")
     Xo <- model.matrix(mt, mf)
     
+    #  accommodate aliased coefficients 120314
+    if (any(object$aliased))
+      Xo <- Xo[,-which(object$aliased)]
+    
     if (object$type == "mixed" || (object$type == "error" && object$etype == "emixed")) { # mixed model: compute WXo
+      K <- ifelse(colnames(Xo)[1] == "(Intercept)", 2, 1)
       # prepare listw for computation of lagged variables
       if (legacy.mixed) { # compute WooXo
         X <- Xo
         region.id.mixed <- rownames(Xo)
       } else { # compute [WX]o
-        X <- rbind(Xs, Xo)
+        is.not.lagged <- 1:((K-1)+(ncol(Xs)-(K-1))/2) #TODO: change the way lag variables are detected
+        Xs.not.lagged <- Xs[, is.not.lagged]
+        if (any(colnames(Xs.not.lagged) != colnames(Xo)))
+          stop("unknown mismatch. please report this bug")
+        X <- rbind(Xs.not.lagged, Xo)
         region.id.mixed <- rownames(X)
       }
       if (is.null(listw.old)) listw.mixed <- listw
       else listw.mixed <- listw.old
       if (length(region.id.mixed) != length(attr(listw.mixed, "region.id")) || !all(region.id.mixed == attr(listw.mixed, "region.id"))) { # if listw is not directly ok
         if (all(subset(attr(listw.mixed, "region.id"), attr(listw.mixed, "region.id") %in% region.id.mixed) == region.id.mixed)) { # only need a subset.listw, ie. spatial units are in the right order
-          listw.mixed <- subset.listw(listw.mixed, (attr(listw.mixed, "region.id") %in% region.id.mixed, zero.policy = zero.policy)
+          listw.mixed <- subset.listw(listw.mixed, attr(listw.mixed, "region.id") %in% region.id.mixed, zero.policy = zero.policy)
         } else { # we use a sparse matrix transformation to reorder a listw
           W <- as(listw.mixed, "CsparseMatrix")
           W <- W[region.id.mixed, region.id.mixed]
@@ -243,18 +251,20 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           }
         } 
       }
+      if (any(object$aliased)) {
+        if (K>1) colnames(WX) <- paste("lag.", colnames(X)[-1], sep="")
+        else colnames(WX) <- paste("lag.", colnames(X), sep="")
+        WX <- WX[,!colnames(WX) %in% names(object$aliased[object$aliased])]
+      }
       if (legacy.mixed) Xo <- cbind(Xo, WX)
       else {
-        WXo <- WX[(length(ys)+1):nrow(WXo),]
+        WXo <- WX[(length(ys)+1):nrow(WX),]
         Xo <- cbind(Xo, WXo)
         WXs <- WX[1:length(ys),]
-        #Xs <- #TODO: detect from colnames "lag." grepl("^lag\\.", c("lag.test", "test", "testlag.test", "lag.lag.test")) ; or from position of columns
+        Xs <- cbind(Xs.not.lagged, WXs)
       }
       rm(list = c("listw.mixed", "region.id.mixed", "X"))
     }
-    #  accommodate aliased coefficients 120314
-    if (any(object$aliased))
-      Xo <- Xo[,-which(object$aliased)]
     trendo <- Xo %*% B
     
     if (type == "default") { # defaut predictor
