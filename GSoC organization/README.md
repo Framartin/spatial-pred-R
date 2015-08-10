@@ -81,8 +81,10 @@ Solutions are under questions.
 
 ## 6th progress report
 
-* fix computation of lagged variables
-* add the prevision case for some in-sample predictor (incomplete)
+14/08/2015
+
+* fix computation of lagged variables (introduce new way of computing WXo by default and legacy.mixed option to keep the old behavior)
+* add the forecast case for some in-sample predictor (newdata has the same rownames than object$y)
 * documentation update
 * minor changes
 
@@ -90,8 +92,7 @@ Solutions are under questions.
 
 * contact C. Thomas: questions sent. Waiting for her advices on SEM model, code for EM approach, and corrections of her paper
 * merge code from spatial-pred-r (need adaptations)
-* WARNING: newdata != prediction of out-of-sample spatial units. How to deal with the difference between out-of-sample prediction (in the sense of C.Thomas et al. (2015)) and prevision: both have newdata. Does the second case need in-sample predictors?
 * work on splm & spdep
 * update invIrW() documentation
-* IMPORTANT BUG: Error of computation of WXo: shloud we compute WoXo or out-of-sample row of WX? Should we keep the ex behavior, ie WoXo? Only with legacy=TRUE?
 * Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
+* warning a listw has style == "M" and we subset it (?)
