@@ -21,7 +21,13 @@ p3 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "TC")
 p4 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "BP")
 
 
-# TODO: Prediction
+# forecast
+p1 = predict.sarlm(COL.lag.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, type = "trend")
+p2 = predict.sarlm(COL.lag.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, type = "TC")
+
+p1 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, type = "trend")
+p2 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, type = "TC")
+
 
 
 # III - Out-of-sample predictions

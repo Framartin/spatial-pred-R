@@ -65,6 +65,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   stopifnot(is.logical(legacy.mixed))
   stopifnot(is.logical(power))
   if (is.null(spChk)) spChk <- get.spChkOption()
+  if (!is.null(newdata) && is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
   
   #        if (pred.se && object$type == "error") {
   #            pred.se <- FALSE
@@ -80,14 +81,59 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   tarys <- object$tary
   trends <- Xs %*% B
   
-  # prevision case: newdata with the same names than data
+  # forecast case: newdata with the same names than data
   # use a sub-samble of in-sample predictors
   if (!is.null(newdata) && nrow(newdata) == length(ys) && rownames(newdata) == attr(ys, "names")) {
     if (!type %in% c("trend", "TC")) warning("no such predictor type for prevision")
-    Xs <- newdata
     # DATA
-    #TODO
-    #
+    frm <- formula(object$call)
+    mt <- delete.response(terms(frm, data=newdata)) # returns a terms object for the same model but with no response variable
+    mf <- model.frame(mt, newdata)
+    # resolved problem of missing response column in newdata reported by
+    # Christine N. Meynard, 060201
+    if (dim(mf)[1] != nrow(newdata))
+      stop("missing values in newdata")
+    Xs <- model.matrix(mt, mf)
+        
+    if (object$type == "mixed" || (object$type == "error" && object$etype == "emixed")) { # mixed model: compute WXo
+      if (is.null(listw) || !inherits(listw, "listw"))
+        stop ("spatial weights list required")
+      if (nrow(Xs) != length(listw$neighbours))
+        stop("mismatch between data and spatial weights")
+      if (spChk && !chkIDs(Xs, listw))
+        stop("Check of data and weights ID integrity failed")
+      K <- ifelse(colnames(Xs)[1] == "(Intercept)", 2, 1)
+      m <- ncol(Xs)
+      # check if there are enough regressors
+      if (m > 1) {
+        WXs <- matrix(nrow=nrow(Xs),ncol=(m-(K-1)))
+        for (k in K:m) {
+          wx <- lag.listw(listw, Xs[,k], 
+                          zero.policy=zero.policy)
+          if (any(is.na(wx))) 
+            stop("NAs in lagged independent variable")
+          WXs[,(k-(K-1))] <- wx
+        }
+      }
+      if (K == 2) {
+        # unnormalized weight matrices
+        if (!(listw$style == "W")) {
+          intercept <- as.double(rep(1, nrow(Xs)))
+          wx <- lag.listw(listw, intercept, 
+                          zero.policy = zero.policy)
+          if (m > 1) {
+            WXs <- cbind(wx, WXs)
+          } else {
+            WXs <- matrix(wx, nrow = nrow(Xs), ncol = 1)
+          }
+        } 
+      }   
+      Xs <- cbind(Xs, WXs)
+    }
+    #  accommodate aliased coefficients 120314
+    if (any(object$aliased))
+      Xs <- Xs[,-which(object$aliased)]
+    
     tarXs <- tarys <- NULL
     trends <- Xs %*% B
     newdata <- NULL
@@ -142,7 +188,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     attr(res, "region.id") <- as.vector(attr(ys, "names"))
   } else { # out-of-sample
     #CHECK
-    if (is.null(rownames(newdata))) stop("newdata should have region.id as rownames")
     if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
     if (!(type == "default" && object$type == "error" && object$etype == "error") && !(type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
       if (is.null(listw) || !inherits(listw, "listw"))
