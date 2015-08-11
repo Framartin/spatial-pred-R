@@ -6,7 +6,7 @@ The goal is to extend prediction in spatial econometrics for in-sample and out-o
 
 ## Test
 
-Run `source("sarlm.R")`
+Run `library(spdep) ; source("sarlm.R") ; source("nb2mat.R")`. 
 
 Examples are given in the `sarlm.examples.R` file.
 
