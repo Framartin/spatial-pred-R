@@ -57,7 +57,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   # check type with model
   if (type %in% c("default", "TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
   if (type %in% c("TC", "TS", "BP", "TS1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
+  
   if (type %in% c("BP") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
+  
   
   if (is.null(power)) power <- object$method != "eigen"
   stopifnot(is.logical(all.data))
@@ -404,8 +408,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       }
     } else { # new predictors
       if (type %in% c("TS1", "KP4", "KP2", "KP3")) { # need to compute TS1/KP4
-        if (nrow(newdata) > 1)
-          warning("newdata have more than 1 row and the predictor type is leave-one-out")
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
         if (is.null(object$rho)) TS1 <- Xo %*% B
         else TS1 <- Xo %*% B + object$rho * Wos %*% ys
@@ -488,6 +490,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           }
         }
       } else if (type == "KP2") {
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
         region.id.newdata <- rownames(newdata)
         W <- as(listw, "CsparseMatrix")
@@ -533,6 +537,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         }
         res <- as.vector(KP2)
       } else if (type == "KP3") {
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
         region.id.newdata <- rownames(newdata)
         W <- as(listw, "CsparseMatrix")
@@ -576,6 +582,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           KP3[i] <- as.vector(TS1[i] + cov %*% solve(sum.y[-length(region.id.temp), -length(region.id.temp)]) %*% (ys - GR[-length(region.id.temp),] %*% Xi %*% B))
         }
         res <- as.vector(KP3)
+      } else if (type == "KP5") {
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
+        Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
+        res <- as.vector(trendo + object$lambda * Wos %*% (ys - trends))
       } else {
         stop("unknow predictor type")
       }

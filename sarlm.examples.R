@@ -70,6 +70,7 @@ po7B = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T
 po7C = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC1", power = FALSE)
 po8 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP2")
 po9 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP3")
+po10 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP5")
 
 
 all(po3 - po4[46:49] < 0.0001)
