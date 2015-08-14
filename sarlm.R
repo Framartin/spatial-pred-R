@@ -57,7 +57,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   # check type with model
   if (type %in% c("default", "TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
   if (type %in% c("TC", "TS", "BP", "TS1") & object$type == "error") stop("no such predict method for error model")
-  if (type %in% c("TC", "TS", "BP", "TS1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("BP") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   
   if (is.null(power)) power <- object$method != "eigen"
   stopifnot(is.logical(all.data))
@@ -403,11 +403,12 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         attr(res, "signal") <- c(signal)
       }
     } else { # new predictors
-      if (type %in% c("TS1", "KP4", "KP2")) { # need to compute TS1/KP4
+      if (type %in% c("TS1", "KP4", "KP2", "KP3")) { # need to compute TS1/KP4
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
-        TS1 <- Xo %*% B + object$rho * Wos %*% ys
+        if (is.null(object$rho)) TS1 <- Xo %*% B
+        else TS1 <- Xo %*% B + object$rho * Wos %*% ys
       }
       if (type %in% c("TC", "BP")) { # need to compute TC
         #notations of C.Thomas and al (2015)
@@ -486,6 +487,95 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
             res[i] <- (invIrW(Wi, object$rho) %*% trendi)[length(region.id.temp)]
           }
         }
+      } else if (type == "KP2") {
+        region.id.data <- attr(ys, "names")
+        region.id.newdata <- rownames(newdata)
+        W <- as(listw, "CsparseMatrix")
+        KP2 <- rep(NA, nrow(newdata))
+        for (i in 1:nrow(newdata)) {
+          region.id.temp <- c(region.id.data, region.id.newdata[i])
+          Wi <- W[region.id.temp, region.id.temp]
+          Xi <- rbind(Xs, Xo[i,])
+          wi <- Wi[length(region.id.temp), ]
+          yi <- c(ys, 0)
+          if (object$type %in% c("sac", "sacmixed")) { # compute GL, GR, sum.u, sum.y
+            if (power){
+              GL <- powerWeights(Wi, rho= object$lambda, order= order, tol= tol, X= Diagonal(length(ys)+1))
+              GR <- powerWeights(Wi, rho= object$rho, order= order, tol= tol, X= Diagonal(length(ys)+1))
+            } else {
+              GL <- invIrW(Wi, object$lambda)
+              GR <- invIrW(Wi, object$rho)
+            }
+            sum.u <- GL %*% t(GL)
+            sum.y <- GR %*% sum.u %*% t(GR)
+          } else if (object$type %in% c("lag", "mixed")) {
+            GL <- Diagonal(length(ys)+1)
+            if (power){
+              GR <- powerWeights(Wi, rho= object$rho, order= order, tol= tol, X= Diagonal(length(ys)+1))
+            } else {
+              GR <- invIrW(Wi, object$rho)
+            }
+            sum.u <- Diagonal(length(ys)+1)
+            sum.y <- GR %*% t(GR)
+          } else if (object$type == "error") {
+            GR <- Diagonal(length(ys)+1)
+            if (power){
+              GL <- powerWeights(Wi, rho= object$lambda, order= order, tol= tol, X= Diagonal(length(ys)+1))
+            } else {
+              GL <- invIrW(Wi, object$lambda)
+            }
+            sum.u <- GL %*% t(GL)
+            sum.y <- sum.u
+          } else stop("unknown model type")
+          covar <- as.vector(sum.u[length(region.id.temp), ] %*% t(GR) %*% wi / (wi %*% sum.y %*% wi))
+          Ewiy <- as.vector(wi %*% GR %*% Xi %*% B)
+          KP2[i] <- TS1[i] + covar %*% (wi %*% yi - Ewiy)
+        }
+        res <- as.vector(KP2)
+      } else if (type == "KP3") {
+        region.id.data <- attr(ys, "names")
+        region.id.newdata <- rownames(newdata)
+        W <- as(listw, "CsparseMatrix")
+        KP3 <- rep(NA, nrow(newdata))
+        for (i in 1:nrow(newdata)) {
+          region.id.temp <- c(region.id.data, region.id.newdata[i])
+          Wi <- W[region.id.temp, region.id.temp]
+          Xi <- rbind(Xs, Xo[i,])
+          wi <- Wi[length(region.id.temp), ]
+          yi <- c(ys, 0)
+          if (object$type %in% c("sac", "sacmixed")) { # compute GL, GR, sum.u, sum.y
+            if (power){
+              GL <- powerWeights(Wi, rho= object$lambda, order= order, tol= tol, X= Diagonal(length(ys)+1))
+              GR <- powerWeights(Wi, rho= object$rho, order= order, tol= tol, X= Diagonal(length(ys)+1))
+            } else {
+              GL <- invIrW(Wi, object$lambda)
+              GR <- invIrW(Wi, object$rho)
+            }
+            sum.u <- GL %*% t(GL)
+            sum.y <- GR %*% sum.u %*% t(GR)
+          } else if (object$type %in% c("lag", "mixed")) {
+            GL <- Diagonal(length(ys)+1)
+            if (power){
+              GR <- powerWeights(Wi, rho= object$rho, order= order, tol= tol, X= Diagonal(length(ys)+1))
+            } else {
+              GR <- invIrW(Wi, object$rho)
+            }
+            sum.u <- Diagonal(length(ys)+1)
+            sum.y <- GR %*% t(GR)
+          } else if (object$type == "error") {
+            GR <- Diagonal(length(ys)+1)
+            if (power){
+              GL <- powerWeights(Wi, rho= object$lambda, order= order, tol= tol, X= Diagonal(length(ys)+1))
+            } else {
+              GL <- invIrW(Wi, object$lambda)
+            }
+            sum.u <- GL %*% t(GL)
+            sum.y <- sum.u
+          } else stop("unknown model type")
+          cov <- sum.u[length(region.id.temp), ] %*% t(GR)[, -length(region.id.temp)]
+          KP3[i] <- as.vector(TS1[i] + cov %*% solve(sum.y[-length(region.id.temp), -length(region.id.temp)]) %*% (ys - GR[-length(region.id.temp),] %*% Xi %*% B))
+        }
+        res <- as.vector(KP3)
       } else {
         stop("unknow predictor type")
       }
