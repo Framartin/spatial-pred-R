@@ -40,11 +40,6 @@ Notes on the previous references:
 * Millo G (2014). "Maximum likelihood estimation of spatially and serially correlated panels with random effects". Computational Statistics & Data Analysis 71 (March), 914-933.
 * Piras G (2010). "sphet: Spatial Models with Heteroskedastic Innovations in R." Journal of Statistical Software, 35(1), 1-21.
 
-## TODO list
-
-* For leave-one-out predictors, if an out-of-sample unit has no neighbors, warns that non-spatial predictor will do the same more efficiently
-
-
 
 ## Notes
 

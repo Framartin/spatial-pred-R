@@ -85,14 +85,22 @@ Solutions are under questions.
 
 * fix computation of lagged variables (introduce new way of computing WXo by default and legacy.mixed option to keep the old behavior)
 * add the forecast case for some in-sample predictor (newdata has the same rownames than object$y)
+* add KP2 and KP3 predictors
+* add KP5 for SEM model (for a SAC, warning)
 * documentation update
+* remove warnings for TC, TS and TS1 predictors when used on a sac model
+* TS1 with a error model now returns trend (bug fix)
 * minor changes
 
 ## TODO
 
 * contact C. Thomas: questions sent. Waiting for her advices on SEM model, code for EM approach, and corrections of her paper
 * merge code from spatial-pred-r (need adaptations)
-* work on splm & spdep
+* work on splm & sphet
+* update predict.sarlm() documentation
 * update invIrW() documentation
 * Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
 * warning a listw has style == "M" and we subset it (?)
+* support all.data option for other predictor
+* add XWy? rename it?
+
