@@ -92,15 +92,23 @@ Solutions are under questions.
 * TS1 with a error model now returns trend (bug fix)
 * minor changes
 
+## 7th progress report
+
+24/08/2015
+
+* 
+
+
 ## TODO
 
 * contact C. Thomas: questions sent. Waiting for her advices on SEM model, code for EM approach, and corrections of her paper
-* merge code from spatial-pred-r (need adaptations)
 * work on splm & sphet
 * update predict.sarlm() documentation
 * update invIrW() documentation
 * Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
 * warning a listw has style == "M" and we subset it (?)
-* support all.data option for other predictor
-* add XWy? rename it?
+* support all.data option for other predictors
+* add XWy from spatial-pred-r? rename it?
+* For leave-one-out predictors, if an out-of-sample unit has no neighbors, warns that non-spatial predictor will do the same more efficiently (?)
+* support listw2 for sac model
 
