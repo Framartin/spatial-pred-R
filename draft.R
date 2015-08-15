@@ -69,6 +69,24 @@ BPo <- TCo - solve(Qoo) %*% Qos %*% (ys - TCs)
 
 #BPw
 
+if (power){
+   W <- as(listw, "CsparseMatrix")
+   invW <- powerWeights(W, rho = object$rho, X = Diagonal(dim(W)[1]), order = order, tol = tol)
+} else {
+   invW <- invIrW(listw, object$rho)
+}
+X <- rbind(Xs, Xo)
+TC <- invW %*% X %*% B
+TCo <- TC[is.newdata]
+TCs <- TC[is.data]
+#Sigma <- object$s2 * solve((Diagonal(dim(W)[1]) - object$rho * t(W)) %*% (Diagonal(dim(W)[1]) - object$rho * W))
+Sigma <- object$s2 * invW %*% t(invW)
+Sos <- Sigma[is.newdata, is.data]
+Sss <- Sigma[is.data, is.data]
+Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
+BPW <- TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - Wos %*% TCs)
+
+
 # BPn
 #TODO: approx of BP quicker to compute: replace S by J, the spatial units of S which are neighbourgs of O
 
