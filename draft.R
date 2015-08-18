@@ -77,6 +77,8 @@ if (power){
 }
 X <- rbind(Xs, Xo)
 TC <- invW %*% X %*% B
+is.data <- 1:length(ys)
+is.newdata <- (length(ys)+1):length(TC)
 TCo <- TC[is.newdata]
 TCs <- TC[is.data]
 #Sigma <- object$s2 * solve((Diagonal(dim(W)[1]) - object$rho * t(W)) %*% (Diagonal(dim(W)[1]) - object$rho * W))
@@ -89,4 +91,35 @@ BPW <- TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - 
 
 # BPn
 #TODO: approx of BP quicker to compute: replace S by J, the spatial units of S which are neighbourgs of O
+is.data <- 1:length(ys)
+is.newdata <- (length(ys)+1):length(TC)
+TCs <- TC[is.data]
+TCo <- TC[is.newdata]
+# compute J = set of all sites in S which are neighbors of at least one site in O
+O <- which(attr(listw,"region.id") %in% rownames(newdata))
+S <- which(attr(listw,"region.id") %in% attr(ys, "names"))
+J.logical <- rep(FALSE, length(listw$neighbours))
+for (i in S) {
+  J.logical[i] <- any(O %in% listw$neighbours[[i]])
+}
+J <- attr(listw,"region.id")[J.logical]
+
+if (length(J)<1) {
+  warning("out-of-sample units have no neighbours")
+  BPN <- TCo
+} else {
+  W <- as(listw, "CsparseMatrix")
+  region.id <- c(J, rownames(newdata))
+  W_jo <- W[region.id, region.id]
+  rm(W)
+  Q_jo <- 1/objects$s2 * (Diagonal(length(region.id)) - object$rho * (W_jo + t(W_jo)) + object$rho^2 * (t(W_jo) %*% W_jo))
+  is.j <- 1:length(J)
+  is.o <- (length(J)+1):length(region.id)
+  Qoo <- Q_jo[is.o, is.o]
+  Qoj <- Q_jo[is.o, is.j]
+  rm(Q_jo)
+  yj <- ys[J]
+  TCj <- TCs[attr(ys, "names") %in% J]
+  BPN <- as.vector(TCo - solve(Qoo) %*% Qoj %*% (yj - TCj))
+}
 
