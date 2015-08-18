@@ -22,7 +22,7 @@ The new documentation is provided in `predict.sarlm.Rd`.
 4. Kato, T. (2012). "Prediction in the lognormal regression model with spatial error dependence". Journal of Housing Economics 21: 66-76.
 5.  Kelejian, H. H. and I. R. Prucha (2007). "The relative efficiencies of various predictors in spatial econometric models containing spatial lags". Regional Science and Urban Economics 37: 363-374.
 6. Kato (2008)
-7. Griffith (2010) Spatial filtering and missing georeferenced data imputation: a comparison of the Getis and Griffith methods, in Perpectives on spatial data analysis, L. Anselin and S.J. Rey (eds), Springer-Verlag
+7. ~~Griffith (2010) Spatial filtering and missing georeferenced data imputation: a comparison of the Getis and Griffith methods, in Perpectives on spatial data analysis, L. Anselin and S.J. Rey (eds), Springer-Verlag~~
 8. LeSage and Pace (2004)
 
 
@@ -34,7 +34,7 @@ Notes on the previous references:
 4. Prediction with a log-transformed variable on SEM model. Anti-log transformation is biased: proposal of 4 other predictors to correct (partially or completely) this bias
 5. 3 optimal predictors for the SAC model, based on 3 different information sets + 2 intuitive predictors (with one for the error model)
 6. TODO: BPn predictor for SEM model?
-7. TODO: EM procedure for missing value with Spatial Filtering
+7. ~~EM procedure for missing value with Spatial Filtering~~
 8. TODO: BP predictor in-sample for SEM model
 
 

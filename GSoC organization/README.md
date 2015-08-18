@@ -111,4 +111,5 @@ Solutions are under questions.
 * add XWy from spatial-pred-r? rename it?
 * For leave-one-out predictors, if an out-of-sample unit has no neighbors, warns that non-spatial predictor will do the same more efficiently (?)
 * support listw2 for sac model
+* add pred.se for KPx predictors
 

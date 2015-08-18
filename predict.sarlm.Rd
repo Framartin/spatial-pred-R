@@ -26,9 +26,9 @@ trend, signal, and noise --- see reference.
   \item{newdata}{data frame in which to predict --- if NULL, predictions are
 for the data on which the model was fitted.  See \sQuote{Details}}
   \item{listw}{a \code{listw} object created for example by \code{nb2listw}.  See \sQuote{Details}}
-  \item{type}{default NULL (or if type = "TS"), use decomposition into
-trend, signal, and noise ; "X" "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL.  See \sQuote{Details}}
-  \item{all.data}{(only applies if type="TC" and newdata not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units.  See \sQuote{Details}}
+  \item{type}{predictor type --- default NULL, use decomposition into
+trend, signal, and noise ; other type available depending if newdata=NULL.  See \sQuote{Details}} %  "X" "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL
+  \item{all.data}{(only applies if type="TC" and newdata is not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
