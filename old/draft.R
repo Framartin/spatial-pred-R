@@ -90,7 +90,7 @@ BPW <- TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - 
 
 
 # BPn
-#TODO: approx of BP quicker to compute: replace S by J, the spatial units of S which are neighbourgs of O
+# approx of BP quicker to compute: replace S by J, the spatial units of S which are neighbourgs of O
 is.data <- 1:length(ys)
 is.newdata <- (length(ys)+1):length(TC)
 TCs <- TC[is.data]

@@ -96,13 +96,12 @@ Solutions are under questions.
 
 24/08/2015
 
-* 
+* add BPW, BPN predictors
 
 
 ## TODO
 
-* contact C. Thomas: questions sent. Waiting for her advices on SEM model, code for EM approach, and corrections of her paper
-* work on splm & sphet
+* work on splm ~~& sphet~~ (not enough scientific paper for sphet)
 * update predict.sarlm() documentation
 * update invIrW() documentation
 * Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
