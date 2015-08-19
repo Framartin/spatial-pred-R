@@ -70,6 +70,8 @@ po7B = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T
 po7C = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC1", power = FALSE)
 po8 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP2")
 po9 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP3")
+po10 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW")
+po11 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN")
 
 
 po1 = predict.sarlm(COL.errW.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP5")

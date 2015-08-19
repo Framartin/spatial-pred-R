@@ -56,10 +56,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   if (is.null(type)) type <- "default"
   # check type with model
   if (type %in% c("default", "TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
-  if (type %in% c("TC", "TS", "BP", "TS1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1") & object$type == "error") stop("no such predict method for error model")
   if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
-  if (type %in% c("BP") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("BP", "BPW", "BPN") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
   
   
@@ -412,9 +412,9 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         if (is.null(object$rho)) TS1 <- Xo %*% B
         else TS1 <- Xo %*% B + object$rho * Wos %*% ys
       }
-      if (type %in% c("TC", "BP")) { # need to compute TC
+      if (type %in% c("TC", "BP", "BPN")) { # need to compute TC
         #notations of C.Thomas and al (2015)
-        if (all.data | type == "BP") {
+        if (all.data | type %in% c("BP", "BPN")) {
           # compute s and o units together
           X <- rbind(Xs, Xo)
           trend <- X %*% B
@@ -424,13 +424,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           } else {
             TC <- invIrW(listw, object$rho) %*% trend
           }
-          # TODO: performances test to know if computing TCo and TCs is quicker than computing TC
         } else { # TCo = TC for out-of-sample spatial units
-          listw.d = .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
+          listw.d <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = c("Wss", "Wos", "Wso", "Woo"))
           Wss <- listw.d$Wss
           Wso <- listw.d$Wso
           Wos <- listw.d$Wos
           Woo <- listw.d$Woo
+          rm(listw.d)
           mB <- - object$rho * Wso
           mC <- - object$rho * Wos
           mD <- Diagonal(dim(Woo)[1]) - object$rho * Woo
@@ -470,6 +470,59 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
         Qos <- Q[is.newdata, is.data]
         BPo <- TCo - solve(Qoo) %*% Qos %*% (ys - TCs)
         res <- as.vector(BPo)
+      } else if (type == "BPW") {
+        if (power){
+          W <- as(listw, "CsparseMatrix")
+          invW <- powerWeights(W, rho = object$rho, X = Diagonal(dim(W)[1]), order = order, tol = tol)
+        } else {
+          invW <- invIrW(listw, object$rho)
+        }
+        X <- rbind(Xs, Xo)
+        TC <- invW %*% X %*% B
+        is.data <- 1:length(ys)
+        is.newdata <- (length(ys)+1):length(TC)
+        TCo <- TC[is.newdata]
+        TCs <- TC[is.data]
+        #Sigma <- object$s2 * solve((Diagonal(dim(W)[1]) - object$rho * t(W)) %*% (Diagonal(dim(W)[1]) - object$rho * W))
+        Sigma <- object$s2 * invW %*% t(invW)
+        Sos <- Sigma[is.newdata, is.data]
+        Sss <- Sigma[is.data, is.data]
+        Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
+        BPW <- TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - Wos %*% TCs)
+        res <- as.vector(BPW)
+      } else if (type == "BPN") {
+        is.data <- 1:length(ys)
+        is.newdata <- (length(ys)+1):length(TC)
+        TCs <- TC[is.data]
+        TCo <- TC[is.newdata]
+        # compute J = set of all sites in S which are neighbors of at least one site in O
+        O <- which(attr(listw,"region.id") %in% rownames(newdata))
+        S <- which(attr(listw,"region.id") %in% attr(ys, "names"))
+        J.logical <- rep(FALSE, length(listw$neighbours))
+        for (i in S) {
+          J.logical[i] <- any(O %in% listw$neighbours[[i]])
+        }
+        J <- attr(listw,"region.id")[J.logical]
+        
+        if (length(J)<1) {
+          warning("out-of-sample units have no neighbours")
+          BPN <- TCo
+        } else {
+          W <- as(listw, "CsparseMatrix")
+          region.id <- c(J, rownames(newdata))
+          W_jo <- W[region.id, region.id]
+          rm(W)
+          Q_jo <- 1/objects$s2 * (Diagonal(length(region.id)) - object$rho * (W_jo + t(W_jo)) + object$rho^2 * (t(W_jo) %*% W_jo))
+          is.j <- 1:length(J)
+          is.o <- (length(J)+1):length(region.id)
+          Qoo <- Q_jo[is.o, is.o]
+          Qoj <- Q_jo[is.o, is.j]
+          rm(Q_jo)
+          yj <- ys[J]
+          TCj <- TCs[attr(ys, "names") %in% J]
+          BPN <- as.vector(TCo - solve(Qoo) %*% Qoj %*% (yj - TCj))
+        }
+        res <- as.vector(BPN)
       } else if (type %in% c("TC1", "KP1")) {
         #TODO: use the definition of TCo of C.Thomas applied in the leave-one-out case: quicker?
         if (nrow(newdata) > 1)
