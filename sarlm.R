@@ -512,7 +512,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
           region.id <- c(J, rownames(newdata))
           W_jo <- W[region.id, region.id]
           rm(W)
-          Q_jo <- 1/objects$s2 * (Diagonal(length(region.id)) - object$rho * (W_jo + t(W_jo)) + object$rho^2 * (t(W_jo) %*% W_jo))
+          Q_jo <- 1/object$s2 * (Diagonal(length(region.id)) - object$rho * (W_jo + t(W_jo)) + object$rho^2 * (t(W_jo) %*% W_jo))
           is.j <- 1:length(J)
           is.o <- (length(J)+1):length(region.id)
           Qoo <- Q_jo[is.o, is.o]

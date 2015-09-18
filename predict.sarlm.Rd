@@ -1,4 +1,4 @@
-% Copyright 2002 by Roger S. Bivand
+% Copyright 2002-2015 by Roger S. Bivand and Martin Gubri
 \name{predict.sarlm}
 \alias{predict.sarlm}
 \alias{print.sarlm.pred}
@@ -7,10 +7,9 @@
 \title{Prediction for spatial simultaneous autoregressive linear
 model objects}
 \description{
-  \code{predict.sarlm()} calculates predictions as far as is at present
-possible for for spatial simultaneous autoregressive linear
+  \code{predict.sarlm()} calculates predictions as far as is at present possible for for spatial simultaneous autoregressive linear
 model objects, using Haining's terminology for decomposition into
-trend, signal, and noise --- see reference.
+trend, signal, and noise, or other type of predictors --- see references.
 }
 \usage{
 \method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = NULL, all.data = FALSE,
@@ -24,17 +23,17 @@ trend, signal, and noise --- see reference.
   \item{object}{\code{sarlm} object returned by \code{lagsarlm}, 
 \code{errorsarlm} or \code{sacsarlm}}
   \item{newdata}{data frame in which to predict --- if NULL, predictions are
-for the data on which the model was fitted.  See \sQuote{Details}}
-  \item{listw}{a \code{listw} object created for example by \code{nb2listw}.  See \sQuote{Details}}
-  \item{type}{predictor type --- default NULL, use decomposition into
-trend, signal, and noise ; other type available depending if newdata=NULL.  See \sQuote{Details}} %  "X" "TC" or "BP" in-sample predictors of Thomas-Agnan -- see reference, only if newdata=NULL
+for the data on which the model was fitted. Should have rownames corresponding to region.id. If rownames are exactly the same than the ones used for training, uses in-sample predictors for forecast.  See \sQuote{Details}}
+  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the ou-of-sample prediction case (ie. if newdata is not NULL), if legacy.mixed=FALSE or if type is not NULL, it should include both in-sample and out-of-sample spatial units. In this case, if listw is not in the correct order, it is reordered.  See \sQuote{Details}}
+  \item{type}{predictor type --- default NULL, use decomposition into  
+trend, signal, and noise ; other type available depending if newdata=NULL. If newdata=NULL (in-sample prediction), NULL, "trend", "TC", "TS" and "BP" are available. If newdata is not null and have the same rownames than data used to fit the model (forecast case), "trend" and "TC" are available. In other cases (out-of-sample prediction), NULL, "trend", "KP1", "KP2", "KP3", "KP4", "KP5", "TC", "BP", "BPW", "BPN", "TS1" and "TC1" are available.  See \sQuote{Details} and references}
   \item{all.data}{(only applies if type="TC" and newdata is not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
-  \item{legacy}{(Only applies to lag and Durbin (mixed) models) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
-  \item{legacy.mixed}{(Only applies to mixed models) default FALSE: compute lagged variables with \eqn{[W X]_O}{[WX]o} where W = \eqn{\begin{bmatrix} X_S \\ X_O \end{bmatrix}}{TODO}, if TRUE compute lagged variables with \eqn{W_{OO} X_O}{Woo Xo}}
-  \item{power}{(Only applies to lag and Durbin (mixed) models) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
+  \item{legacy}{(Only applies to lag and Durbin (mixed) models, and if type=NULL) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
+  \item{legacy.mixed}{(Only applies to mixed models and if newdata is not NULL) default FALSE: compute lagged variables from both in-sample and out-if-sample units with \eqn{[W X]_O}{[WX]o} and \eqn{[W X]_S}{[WX]s} where X = \eqn{\begin{bmatrix} X_S \\ X_O \end{bmatrix}}{(Xs', Xo')'}, if TRUE compute lagged variables independantly between in-sample and ou-of-sample units with \eqn{W_{OO} X_O}{Woo Xo}} and \eqn{W_{SS} X_S}{Wss Xs}} 
+  \item{power}{(Only applies to lag and Durbin (mixed) models if type=NULL, or to "KP1", "KP2", "KP3", "TC", "BP", "BPN", "BPW" and "TC1" types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
   \item{order}{power series maximum limit if \code{power} is TRUE}
   \item{tol}{tolerance for convergence of power series if \code{power} is TRUE}
   \item{spChk}{should the rownames of data frames be checked against the spatial objects for identity integrity, TRUE, or FALSE, default NULL to use \code{get.spChkOption()}}
