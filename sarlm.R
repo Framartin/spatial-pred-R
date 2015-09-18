@@ -1,4 +1,4 @@
-# Copyright 2002-12 by Roger Bivand
+# Copyright 2002-15 by Roger Bivand and Martin Gubri
 #
 
 residuals.sarlm <- function(object, ...) {

@@ -46,6 +46,17 @@ Notes on the previous references:
 * Piras G (2010). "sphet: Spatial Models with Heteroskedastic Innovations in R." Journal of Statistical Software, 35(1), 1-21.
 
 
+## License
+
+The following files are distributed under the GPL (>= 2) license ([GPLv2](https://cran.r-project.org/web/licenses/GPL-2) and [GPLv3](https://cran.r-project.org/web/licenses/GPL-3)):
+
+- `sarlm.R`
+- `sarlm.examples.R`
+- `nb2mat.R`
+- `predict.sarlm.Rd`
+- `nb2mat.Rd`
+
+
 ## Notes
 
 This project is partially based on the work of Jean-Sauveur AY, Raja CHAKIR and Julie LE GALLO
