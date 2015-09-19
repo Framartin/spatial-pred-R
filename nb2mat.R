@@ -43,8 +43,8 @@ invIrW <- function(x, rho, method="solve", feasible=NULL) {
 	  V <- listw2mat(x)
 	} else if (inherits(x, "Matrix") || inherits(x, "matrix")) {
 	  if (method == "chol") stop("No Cholesky method for matrix or sparse matrix object")
-    n <- dim(x)[1]
-    V <- x
+          n <- dim(x)[1]
+          V <- x
 	} else stop("Not a weights list or a Sparse Matrix")
 	if (is.null(feasible) || (is.logical(feasible) && !feasible)) {
 		e <- eigen(V, only.values = TRUE)$values
