@@ -207,6 +207,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         if (!legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from the full WX
       } else {
         region.id <- c(attr(ys, "names"), rownames(newdata))
+        if (legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from Woo (as mat2listw() cannot compute Woo from the new listw, because it has general weights lists)
       }
       
       if (length(region.id) != length(attr(listw, "region.id")) || !all(region.id == attr(listw, "region.id"))) { # if listw is not directly ok
@@ -257,7 +258,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         region.id.mixed <- rownames(X)
       }
       if (is.null(listw.old)) listw.mixed <- listw
-      else listw.mixed <- listw.old
+      else {
+        listw.mixed <- listw.old
+        rm(listw.old)
+      }
       if (length(region.id.mixed) != length(attr(listw.mixed, "region.id")) || !all(region.id.mixed == attr(listw.mixed, "region.id"))) { # if listw is not directly ok
         if (all(subset(attr(listw.mixed, "region.id"), attr(listw.mixed, "region.id") %in% region.id.mixed) == region.id.mixed)) { # only need a subset.listw, ie. spatial units are in the right order
           listw.mixed <- subset.listw(listw.mixed, attr(listw.mixed, "region.id") %in% region.id.mixed, zero.policy = zero.policy)
