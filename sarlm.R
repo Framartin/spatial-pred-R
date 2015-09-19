@@ -132,7 +132,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
             WXs <- matrix(wx, nrow = nrow(Xs), ncol = 1)
           }
         } 
-      }   
+      }
+      if (any(object$aliased)) {
+        if (K>1 && (listw$style == "W")) colnames(WXs) <- paste("lag.", colnames(Xs)[-1], sep="")
+        else colnames(WXs) <- paste("lag.", colnames(Xs), sep="")
+      }
       Xs <- cbind(Xs, WXs)
     }
     #  accommodate aliased coefficients 120314
@@ -211,9 +215,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
       }
       
       if (length(region.id) != length(attr(listw, "region.id")) || !all(region.id == attr(listw, "region.id"))) { # if listw is not directly ok
-        if (all(subset(attr(listw, "region.id"), attr(listw, "region.id") %in% region.id) == region.id)) { # only need a subset.listw, ie. spatial units are in the right order
+        if (all(subset(attr(listw, "region.id"), attr(listw, "region.id") %in% region.id) == region.id) && listw$style != "M") { # only need a subset.listw, ie. spatial units are in the right order and if weights style is not unknown
           listw <- subset.listw(listw, (attr(listw, "region.id") %in% region.id), zero.policy = zero.policy)
         } else { # we use a sparse matrix transformation to reorder a listw
+          if (listw$style == "M") warning("unknown weight style: listw is reorganized without re-normalization")
           W <- as(listw, "CsparseMatrix")
           W <- W[region.id, region.id]
           style <- listw$style
@@ -263,9 +268,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         rm(listw.old)
       }
       if (length(region.id.mixed) != length(attr(listw.mixed, "region.id")) || !all(region.id.mixed == attr(listw.mixed, "region.id"))) { # if listw is not directly ok
-        if (all(subset(attr(listw.mixed, "region.id"), attr(listw.mixed, "region.id") %in% region.id.mixed) == region.id.mixed)) { # only need a subset.listw, ie. spatial units are in the right order
+        if (all(subset(attr(listw.mixed, "region.id"), attr(listw.mixed, "region.id") %in% region.id.mixed) == region.id.mixed) && listw.mixed$style != "M") { # only need a subset.listw, ie. spatial units are in the right order and weights style is not unknown
           listw.mixed <- subset.listw(listw.mixed, attr(listw.mixed, "region.id") %in% region.id.mixed, zero.policy = zero.policy)
         } else { # we use a sparse matrix transformation to reorder a listw
+          if (listw$style == "M") warning("unknown weight style: listw is reorganized without re-normalization")
           W <- as(listw.mixed, "CsparseMatrix")
           W <- W[region.id.mixed, region.id.mixed]
           style <- listw.mixed$style
@@ -306,7 +312,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         } 
       }
       if (any(object$aliased)) {
-        if (K>1) colnames(WX) <- paste("lag.", colnames(X)[-1], sep="")
+        if (K>1 && (listw.mixed$style == "W")) colnames(WX) <- paste("lag.", colnames(X)[-1], sep="")
         else colnames(WX) <- paste("lag.", colnames(X), sep="")
         WX <- WX[,!colnames(WX) %in% names(object$aliased[object$aliased])]
       }
