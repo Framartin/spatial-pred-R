@@ -13,6 +13,7 @@ COL.mix.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw, type="mixed")
 # defaut predictor: trend-signal decomposition
 p1A = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F)
 p1B = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "TS") # same call
+all(p1A == p1B)
 # X: only the trend
 p2 = predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, type = "trend")
 # TC
