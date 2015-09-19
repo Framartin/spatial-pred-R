@@ -12,7 +12,7 @@ model objects, using Haining's terminology for decomposition into
 trend, signal, and noise, or other type of predictors --- see references.
 }
 \usage{
-\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = NULL, all.data = FALSE,
+\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = "TS", all.data = FALSE,
  zero.policy = NULL, legacy = TRUE, legacy.mixed = FALSE, power = NULL, order = 250,
  tol = .Machine$double.eps^(3/5), spChk = NULL, ...)
 \method{print}{sarlm.pred}(x, ...)
@@ -24,16 +24,16 @@ trend, signal, and noise, or other type of predictors --- see references.
 \code{errorsarlm} or \code{sacsarlm}}
   \item{newdata}{data frame in which to predict --- if NULL, predictions are
 for the data on which the model was fitted. Should have rownames corresponding to region.id. If rownames are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
-  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if legacy.mixed=FALSE or if type is not NULL, it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
-  \item{type}{predictor type --- default NULL, use decomposition into  
-trend, signal, and noise ; other type available depending if newdata=NULL. If newdata=NULL (in-sample prediction), NULL, "trend", "TC", "TS" and "BP" are available. If newdata is not null and have the same rownames than data used to fit the model (forecast case), "trend" and "TC" are available. In other cases (out-of-sample prediction), NULL, "trend", "KP1", "KP2", "KP3", "KP4", "KP5", "TC", "BP", "BPW", "BPN", "TS1" and "TC1" are available.  See \sQuote{Details} and references}
+  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if legacy.mixed=FALSE or if type != "TS", it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
+  \item{type}{predictor type --- default "TS", use decomposition into  
+trend, signal, and noise ; other type available depending if newdata=NULL. If newdata=NULL (in-sample prediction), "TS", "trend", "TC" and "BP" are available. If newdata is not NULL and have the same rownames than data used to fit the model (forecast case), "trend" and "TC" are available. In other cases (out-of-sample prediction), "TS", "trend", "KP1", "KP2", "KP3", "KP4", "KP5", "TC", "BP", "BPW", "BPN", "TS1" and "TC1" are available.  See \sQuote{Details} and references}
   \item{all.data}{(only applies if type="TC" and newdata is not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
-  \item{legacy}{(Only applies to lag and Durbin (mixed) models, and if type=NULL) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
+  \item{legacy}{(Only applies to lag and Durbin (mixed) models, and if type="TS") default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
   \item{legacy.mixed}{(Only applies to mixed models and if newdata is not NULL) default FALSE: compute lagged variables from both in-sample and out-if-sample units with \eqn{[W X]_O}{[WX]o} and \eqn{[W X]_S}{[WX]s} where X = \code{cbind(X_S, X_O)}, if TRUE compute lagged variables independantly between in-sample and out-of-sample units with \eqn{W_{OO} X_O}{Woo Xo}} and \eqn{W_{SS} X_S}{Wss Xs}} 
-  \item{power}{(Only applies to lag and Durbin (mixed) models if type=NULL, or for "KP1", "KP2", "KP3", "TC", "BP", "BPN", "BPW" and "TC1" types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
+  \item{power}{(Only applies to lag and Durbin (mixed) models for "TS", "KP1", "KP2", "KP3", "TC", "BP", "BPN", "BPW" and "TC1" types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
   \item{order}{power series maximum limit if \code{power} is TRUE}
   \item{tol}{tolerance for convergence of power series if \code{power} is TRUE}
   \item{spChk}{should the rownames of data frames be checked against the spatial objects for identity integrity, TRUE, or FALSE, default NULL to use \code{get.spChkOption()}}
@@ -120,7 +120,7 @@ COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw)
 COL.mix.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw,
   type="mixed")
 print(p1 <- predict(COL.mix.eig))
-print(p2 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "trend"))
+print(p2 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS"))
 AIC(COL.mix.eig)
 sqrt(deviance(COL.mix.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(p1))^2)/length(COL.nb))
@@ -131,7 +131,7 @@ AIC(COL.err.eig)
 sqrt(deviance(COL.err.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.err.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.err.eig, newdata=COL.OLD,
-  listw=lw, type = "trend")))^2)/length(COL.nb))
+  listw=lw, type = "TS")))^2)/length(COL.nb))
 
 COL.SDerr.eig <- errorsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw,
  etype="emixed")
@@ -139,19 +139,19 @@ AIC(COL.SDerr.eig)
 sqrt(deviance(COL.SDerr.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.SDerr.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.SDerr.eig, newdata=COL.OLD,
-  listw=lw, type = "trend")))^2)/length(COL.nb))
+  listw=lw, type = "TS")))^2)/length(COL.nb))
 
 AIC(COL.lag.eig)
 sqrt(deviance(COL.lag.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.lag.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.lag.eig, newdata=COL.OLD,
-  listw=lw, type = "trend")))^2)/length(COL.nb))
+  listw=lw, type = "TS")))^2)/length(COL.nb))
 
-p3 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "trend", legacy=FALSE)
+p3 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS", legacy=FALSE)
 all.equal(p2, p3, check.attributes=FALSE)
-p4 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "trend", legacy=FALSE, power=TRUE)
+p4 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS", legacy=FALSE, power=TRUE)
 all.equal(p2, p4, check.attributes=FALSE)
-p5 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "trend", legacy=TRUE, power=TRUE)
+p5 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS", legacy=TRUE, power=TRUE)
 all.equal(p2, p5, check.attributes=FALSE)
 }
 

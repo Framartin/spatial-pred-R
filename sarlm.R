@@ -1,4 +1,5 @@
-# Copyright 2002-15 by Roger Bivand and Martin Gubri
+
+# Copyright 2002-12 by Roger Bivand, 2015 Martin Gubri
 #
 
 residuals.sarlm <- function(object, ...) {
@@ -46,16 +47,15 @@ fitted.sarlm <- function(object, ...) {
 }
 
 
-# retourne la valeur de la prédiction + un attributs trend et signal
-predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=FALSE,
+predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=FALSE,
                           zero.policy=NULL, legacy=TRUE, legacy.mixed=FALSE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
                           spChk=NULL, ...) {
   if (is.null(zero.policy))
     zero.policy <- get("zeroPolicy", envir = .spdepOptions)
   stopifnot(is.logical(zero.policy))
-  if (is.null(type)) type <- "default"
+  if (is.null(type)) type <- "TS"
   # check type with model
-  if (type %in% c("default", "TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
+  if (type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
   if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1") & object$type == "error") stop("no such predict method for error model")
   if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
@@ -81,6 +81,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   Xs <- object$X
   B <- object$coefficients
   ys <- object$y
+  if (class(ys) == "AsIs") ys <- c(ys)
   tarXs <- object$tarX
   tarys <- object$tary
   trends <- Xs %*% B
@@ -145,7 +146,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   
   
   if (is.null(newdata)) { # in-sample pred
-    if (type == "default" || type == "TS") { # defaut predictor
+    if (type == "TS") { # defaut predictor
       res <- fitted.values(object)
       if (object$type == "error") { # We ou WX+We
         attr(res, "trend") <- as.vector(trends)
@@ -193,7 +194,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
   } else { # out-of-sample
     #CHECK
     if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
-    if (!(type == "default" && object$type == "error" && object$etype == "error") && !(type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
+    if (!(type == "TS" && object$type == "error" && object$etype == "error") && !(type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
@@ -201,7 +202,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
       listw.old <- NULL
       
       # wanted order of the listw
-      if (type == "default") { # only need Woo
+      if (type == "TS") { # only need Woo
         region.id <- rownames(newdata)
         if (!legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from the full WX
       } else {
@@ -316,7 +317,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type=NULL, all.data=
     }
     trendo <- Xo %*% B
     
-    if (type == "default") { # defaut predictor
+    if (type == "TS") { # defaut predictor
       if (object$type == "error") {
         if (object$etype == "error") { # We
           signal <- rep(0, length(trendo))

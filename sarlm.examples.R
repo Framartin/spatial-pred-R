@@ -60,7 +60,7 @@ newdata = COL.OLD[c("1042", "1043", "1044", "1045"), ] # work with newdata havin
 COL.OLD[region.id.newdata, "CRIME"] # true values
 
 # lag model (and sac)
-po1 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T)
+po1 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T) # not available for sac model. Definition of Bivand RS (2002). "Spatial Econometrics Functions in R: Classes and Methods." Journal of Geographical Systems, 4, 405-421. Old behavior of predict.sarlm()
 po2A = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TS1")
 po2B = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP4")
 po3 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC")
