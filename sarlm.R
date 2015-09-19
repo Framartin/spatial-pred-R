@@ -499,12 +499,19 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         # compute J = set of all sites in S which are neighbors of at least one site in O
         O <- which(attr(listw,"region.id") %in% rownames(newdata))
         S <- which(attr(listw,"region.id") %in% attr(ys, "names"))
-        J.logical <- rep(FALSE, length(listw$neighbours))
-        for (i in S) {
-          J.logical[i] <- any(O %in% listw$neighbours[[i]])
+        #bug fix: J = set of S s.t. at least 1 elmt of O is neigbourg with S. And not: set of S s.t. these elmts of S are neigbourgs with at least 1 elmt of S.
+        #different iff W is not symetric
+        #J.logical <- rep(FALSE, length(listw$neighbours))
+        #for (i in S) {
+        #  J.logical[i] <- any(O %in% listw$neighbours[[i]])
+        #}
+        #J <- attr(listw,"region.id")[J.logical]
+        J.ref <- NULL
+        for (i in O) {
+          J.ref <- c(J.ref, listw$neighbours[[i]][listw$neighbours[[i]] %in% S])
         }
-        J <- attr(listw,"region.id")[J.logical]
-        
+        J <- attr(listw,"region.id")[unique(J.ref)]
+        J <- attr(listw,"region.id")[attr(listw,"region.id") %in% J] # keep the order of listw
         if (length(J)<1) {
           warning("out-of-sample units have no neighbours")
           BPN <- TCo
