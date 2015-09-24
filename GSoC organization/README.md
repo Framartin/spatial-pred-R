@@ -97,18 +97,26 @@ Solutions are under questions.
 24/08/2015
 
 * add BPW, BPN predictors
+* fix typo
+* update documentation (predict.sarlm.Rd)
+* update examples
+* clean repo
 
+## Final fixes
+
+* Add license (GPL >= 2)
+* merged modifs from CRAN by R.Bivand
+* 
 
 ## TODO
 
 * work on splm ~~& sphet~~ (not enough scientific paper for sphet)
-* update predict.sarlm() documentation
-* update invIrW() documentation
-* Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
-* warning a listw has style == "M" and we subset it (?)
+* add BP1, BPW1 and BPN1 types
+* update predict.sarlm() documentation (include a summary table)
 * support all.data option for other predictors
 * add XWy from spatial-pred-r? rename it?
 * For leave-one-out predictors, if an out-of-sample unit has no neighbors, warns that non-spatial predictor will do the same more efficiently (?)
 * support listw2 for sac model
 * add pred.se for KPx predictors
+* Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
 
