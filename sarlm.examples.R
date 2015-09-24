@@ -107,5 +107,5 @@ listw.M <- mat2listw(listw2mat(lw), style = "M")
 COL.mix.eig <- lagsarlm(CRIME ~ AREA_PL + INC + HOVAL, data=data2, listw.sub.M, type="mixed")
 po1 = predict.sarlm(COL.mix.eig, listw = listw.M, newdata = newdata, zero.policy = T)
 po2 = predict.sarlm(COL.mix.eig, listw = listw.M, newdata = newdata, zero.policy = T, type = "TC")
-# here the lagged intercept is dropped
+COL.mix.eig$aliased # here the lagged intercept is dropped
 
