@@ -56,10 +56,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   if (is.null(type)) type <- "TS"
   # check type with model
   if (type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
-  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1", "BP1") & object$type == "error") stop("no such predict method for error model")
   if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
-  if (type %in% c("BP", "BPW", "BPN") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("BP", "BPW", "BPN", "BP1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
   
   
@@ -542,7 +542,6 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         }
         res <- as.vector(BPN)
       } else if (type %in% c("TC1", "KP1")) {
-        #TODO: use the definition of TCo of C.Thomas applied in the leave-one-out case: quicker?
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -560,6 +559,35 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
             res[i] <- (invIrW(Wi, object$rho) %*% trendi)[length(region.id.temp)]
           }
         }
+      } else if (type == "BP1") {
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
+        region.id.data <- attr(ys, "names")
+        region.id.newdata <- rownames(newdata)
+        BPo <- rep(NA, nrow(newdata))
+        W <- as(listw, "CsparseMatrix")
+        for (i in 1:nrow(newdata)) {
+          region.id.temp <- c(region.id.data, region.id.newdata[i])
+          Wi <- W[region.id.temp, region.id.temp]
+          Xi <- rbind(Xs, Xo[i,])
+          # compute TC1 for S and o units
+          TC1i <- rep(NA, length(region.id.temp))
+          is.data <- 1:length(ys)
+          is.newdata <- length(region.id.temp)
+          if (power) {
+            TC1i <- c(as(powerWeights(Wi, rho=object$rho, X=Xi, order=order, tol=tol), "matrix") %*% B)
+          } else {
+            trendi <- c(trends, trendo[i])
+            TC1i <- (invIrW(Wi, object$rho) %*% trendi)
+          }
+          TC1si <- TC1i[is.data]
+          TC1oi <- TC1i[is.newdata]
+          Qi <- 1/object$s2 * ( Diagonal(dim(Wi)[1]) - object$rho * (t(Wi) + Wi) + object$rho^2 * (t(Wi) %*% Wi) )
+          Qooi <- Qi[is.newdata, is.newdata]
+          Qosi <- Qi[is.newdata, is.data]
+          BPo[i] <- TC1oi - solve(Qooi) %*% Qosi %*% (ys - TC1si)
+        }
+        res <- as.vector(BPo)
       } else if (type == "KP2") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
