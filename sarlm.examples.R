@@ -75,6 +75,7 @@ po9 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T,
 po10 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW")
 po11 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN")
 po12 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP1")
+po13 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW1")
 
 
 all(po3 - po4[46:49] < 1e-6) # the 2 different computation methods give the same results
@@ -111,3 +112,22 @@ po1 = predict.sarlm(COL.mix.eig, listw = listw.M, newdata = newdata, zero.policy
 po2 = predict.sarlm(COL.mix.eig, listw = listw.M, newdata = newdata, zero.policy = T, type = "TC")
 COL.mix.eig$aliased # here the lagged intercept is dropped
 
+# fix bug when newdata has only one row
+newdata = COL.OLD["1042", ]
+COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=data, listw.sub)
+po1 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T) # BUG
+po2A = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TS1")
+po2B = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP4")
+po3 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC")
+po4 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC", all.data = T)
+po5 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP")
+po6 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "trend")
+po7A = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC1")
+po7B = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP1") # another alias
+po7C = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "TC1", power = FALSE)
+po8 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP2")
+po9 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "KP3")
+po10 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW")
+po11 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN")
+po12 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP1")
+po13 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW1")

@@ -56,10 +56,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   if (is.null(type)) type <- "TS"
   # check type with model
   if (type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
-  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1", "BP1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1") & object$type == "error") stop("no such predict method for error model")
   if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
-  if (type %in% c("BP", "BPW", "BPN", "BP1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("BP", "BPW", "BPN", "BP1", "BPW1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
   
   
@@ -209,6 +209,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
       if (type == "TS") { # only need Woo
         region.id <- rownames(newdata)
         if (!legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from the full WX
+        # listw <- mat2listw(matrix(0), row.names = rownames(newdata)) # avoid crash of subset.listw
       } else {
         region.id <- c(attr(ys, "names"), rownames(newdata))
         if (legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from Woo (as mat2listw() cannot compute Woo from the new listw, because it has general weights lists)
@@ -496,10 +497,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         TCs <- TC[is.data]
         #Sigma <- object$s2 * solve((Diagonal(dim(W)[1]) - object$rho * t(W)) %*% (Diagonal(dim(W)[1]) - object$rho * W))
         Sigma <- object$s2 * invW %*% t(invW)
-        Sos <- Sigma[is.newdata, is.data]
-        Sss <- Sigma[is.data, is.data]
+        Sos <- Sigma[is.newdata, is.data, drop=F]
+        Sss <- Sigma[is.data, is.data, drop=F]
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
-        BPW <- TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - Wos %*% TCs)
+        BPW <- as.numeric(TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - Wos %*% TCs))
         res <- as.vector(BPW)
       } else if (type == "BPN") {
         is.data <- 1:length(ys)
@@ -564,7 +565,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
         region.id.newdata <- rownames(newdata)
-        BPo <- rep(NA, nrow(newdata))
+        BP1o <- rep(NA, nrow(newdata))
         W <- as(listw, "CsparseMatrix")
         for (i in 1:nrow(newdata)) {
           region.id.temp <- c(region.id.data, region.id.newdata[i])
@@ -582,12 +583,43 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           }
           TC1si <- TC1i[is.data]
           TC1oi <- TC1i[is.newdata]
+          
           Qi <- 1/object$s2 * ( Diagonal(dim(Wi)[1]) - object$rho * (t(Wi) + Wi) + object$rho^2 * (t(Wi) %*% Wi) )
           Qooi <- Qi[is.newdata, is.newdata]
           Qosi <- Qi[is.newdata, is.data]
-          BPo[i] <- TC1oi - solve(Qooi) %*% Qosi %*% (ys - TC1si)
+          BP1o[i] <- TC1oi - solve(Qooi) %*% Qosi %*% (ys - TC1si)
         }
-        res <- as.vector(BPo)
+        res <- as.vector(BP1o)
+      } else if (type == "BPW1") {
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
+        region.id.data <- attr(ys, "names")
+        region.id.newdata <- rownames(newdata)
+        BPW1o <- rep(NA, nrow(newdata))
+        W <- as(listw, "CsparseMatrix")
+        for (i in 1:nrow(newdata)) {
+          region.id.temp <- c(region.id.data, region.id.newdata[i])
+          Wi <- W[region.id.temp, region.id.temp]
+          Xi <- rbind(Xs, Xo[i,])
+          is.data <- 1:length(ys)
+          is.newdata <- length(region.id.temp)
+          # for now, only support power==TRUE
+          # if (power){
+          invWi <- powerWeights(Wi, rho = object$rho, X = Diagonal(dim(Wi)[1]), order = order, tol = tol)
+          #} else {
+          #  invW <- invIrW(listw, object$rho)
+          #}
+          TC1i <- invWi %*% Xi %*% B
+          TC1oi <- TC1i[is.newdata]
+          TC1si <- TC1i[is.data]
+          #Sigma <- object$s2 * solve((Diagonal(dim(W)[1]) - object$rho * t(W)) %*% (Diagonal(dim(W)[1]) - object$rho * W))
+          Sigmai <- object$s2 * invWi %*% t(invWi)
+          Sosi <- Sigmai[is.newdata, is.data, drop=F]
+          Sssi <- Sigmai[is.data, is.data]
+          Wosi <- Wi[region.id.newdata[i], region.id.data, drop=F]
+          BPW1o[i] <- as.numeric(TC1oi + Sosi %*% t(Wosi) %*% solve(Wosi %*% Sssi %*% t(Wosi)) %*% (Wosi %*% ys - Wosi %*% TC1si))
+        }
+        res <- as.vector(BPW1o)
       } else if (type == "KP2") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
@@ -717,13 +749,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   W <- as(listw, "CsparseMatrix")
   s <- list(Wss = NULL, Wos = NULL, Wso = NULL, Woo = NULL)
   if ("Wss" %in% type)
-    s$Wss <- W[region.id.data, region.id.data]
+    s$Wss <- W[region.id.data, region.id.data, drop=F]
   if ("Wos" %in% type)
-    s$Wos <- W[region.id.newdata, region.id.data]
+    s$Wos <- W[region.id.newdata, region.id.data, drop=F]
   if ("Wso" %in% type)
-    s$Wso <- W[region.id.data, region.id.newdata]
+    s$Wso <- W[region.id.data, region.id.newdata, drop=F]
   if ("Woo" %in% type)
-    s$Woo <- W[region.id.newdata, region.id.newdata]
+    s$Woo <- W[region.id.newdata, region.id.newdata, drop=F]
   return(s)
 }
 
