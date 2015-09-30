@@ -76,6 +76,7 @@ po10 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T
 po11 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN")
 po12 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP1")
 po13 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW1")
+po14 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN1")
 
 
 all(po3 - po4[46:49] < 1e-6) # the 2 different computation methods give the same results

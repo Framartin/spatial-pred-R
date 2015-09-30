@@ -56,10 +56,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   if (is.null(type)) type <- "TS"
   # check type with model
   if (type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
-  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1", "BPN1") & object$type == "error") stop("no such predict method for error model")
   if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
-  if (type %in% c("BP", "BPW", "BPN", "BP1", "BPW1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("BP", "BPW", "BPN", "BP1", "BPW1", "BPN1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
   
   
@@ -603,12 +603,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           Xi <- rbind(Xs, Xo[i,])
           is.data <- 1:length(ys)
           is.newdata <- length(region.id.temp)
-          # for now, only support power==TRUE
-          # if (power){
-          invWi <- powerWeights(Wi, rho = object$rho, X = Diagonal(dim(Wi)[1]), order = order, tol = tol)
-          #} else {
-          #  invW <- invIrW(listw, object$rho)
-          #}
+          if (power){
+            invWi <- powerWeights(Wi, rho = object$rho, X = Diagonal(dim(Wi)[1]), order = order, tol = tol)
+          } else {
+            invW <- invIrW(Wi, object$rho)
+          }
           TC1i <- invWi %*% Xi %*% B
           TC1oi <- TC1i[is.newdata]
           TC1si <- TC1i[is.data]
@@ -620,6 +619,57 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           BPW1o[i] <- as.numeric(TC1oi + Sosi %*% t(Wosi) %*% solve(Wosi %*% Sssi %*% t(Wosi)) %*% (Wosi %*% ys - Wosi %*% TC1si))
         }
         res <- as.vector(BPW1o)
+      } else if (type == "BPN1") {
+        if (nrow(newdata) > 1)
+          warning("newdata have more than 1 row and the predictor type is leave-one-out")
+        region.id.data <- attr(ys, "names")
+        region.id.newdata <- rownames(newdata)
+        BPN1o <- rep(NA, nrow(newdata))
+        W <- as(listw, "CsparseMatrix")
+        for (i in 1:nrow(newdata)) {
+          region.id.temp <- c(region.id.data, region.id.newdata[i])
+          Wi <- W[region.id.temp, region.id.temp, drop=F]
+          listwi <- mat2listw(Wi)
+          Xi <- rbind(Xs, Xo[i,])
+          # compute TC1 for S and o units
+          TC1i <- rep(NA, length(region.id.temp))
+          is.data <- 1:length(ys)
+          is.newdata <- length(region.id.temp)
+          if (power) {
+            TC1i <- c(as(powerWeights(Wi, rho=object$rho, X=Xi, order=order, tol=tol), "matrix") %*% B)
+          } else {
+            trendi <- c(trends, trendo[i])
+            TC1i <- (invIrW(Wi, object$rho) %*% trendi)
+          }
+          TC1si <- TC1i[is.data]
+          TC1oi <- TC1i[is.newdata]
+          
+          # compute J = set of all sites in S which are neighbors of at least one site in O
+          o <- which(attr(listwi,"region.id") %in% rownames(newdata)[i])
+          S <- which(attr(listwi,"region.id") %in% attr(ys, "names"))
+          J.ref <- NULL
+          for (k in o) {
+            J.ref <- c(J.ref, listwi$neighbours[[k]][listwi$neighbours[[k]] %in% S])
+          }
+          J <- attr(listwi,"region.id")[unique(J.ref)]
+          J <- attr(listwi,"region.id")[attr(listwi,"region.id") %in% J] # keep the order of listw
+          if (length(J)<1) {
+            warning("out-of-sample units have no neighbours")
+            BPN1o[i] <- TC1oi
+          } else {
+            region.id <- c(J, rownames(newdata)[i])
+            W_jo <- Wi[region.id, region.id, drop=F]
+            Q_jo <- 1/object$s2 * (Diagonal(length(region.id)) - object$rho * (W_jo + t(W_jo)) + object$rho^2 * (t(W_jo) %*% W_jo))
+            is.j <- 1:length(J)
+            is.o <- (length(J)+1):length(region.id)
+            Qoo <- Q_jo[is.o, is.o, drop=F]
+            Qoj <- Q_jo[is.o, is.j, drop=F]
+            yj <- ys[J]
+            TC1j <- TC1si[attr(ys, "names") %in% J]
+            BPN1o[i] <- as.vector(TC1oi - solve(Qoo) %*% Qoj %*% (yj - TC1j))
+          }
+        }
+        res <- as.vector(BPN1o)
       } else if (type == "KP2") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
