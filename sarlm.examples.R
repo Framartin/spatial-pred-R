@@ -132,3 +132,4 @@ po10 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T
 po11 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN")
 po12 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BP1")
 po13 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPW1")
+po14 = predict.sarlm(COL.lag.eig, listw = lw, newdata = newdata, zero.policy = T, type = "BPN1")

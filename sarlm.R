@@ -606,7 +606,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           if (power){
             invWi <- powerWeights(Wi, rho = object$rho, X = Diagonal(dim(Wi)[1]), order = order, tol = tol)
           } else {
-            invW <- invIrW(Wi, object$rho)
+            invWi <- invIrW(Wi, object$rho)
           }
           TC1i <- invWi %*% Xi %*% B
           TC1oi <- TC1i[is.newdata]
