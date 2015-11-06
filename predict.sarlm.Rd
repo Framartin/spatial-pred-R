@@ -9,7 +9,7 @@ model objects}
 \description{
   \code{predict.sarlm()} calculates predictions as far as is at present possible for for spatial simultaneous autoregressive linear
 model objects, using Haining's terminology for decomposition into
-trend, signal, and noise, or other type of predictors --- see references.
+trend, signal, and noise, or other types of predictors --- see references.
 }
 \usage{
 \method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = "TS", all.data = FALSE,
@@ -23,17 +23,17 @@ trend, signal, and noise, or other type of predictors --- see references.
   \item{object}{\code{sarlm} object returned by \code{lagsarlm}, 
 \code{errorsarlm} or \code{sacsarlm}}
   \item{newdata}{data frame in which to predict --- if NULL, predictions are
-for the data on which the model was fitted. Should have rownames corresponding to region.id. If rownames are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
-  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if legacy.mixed=FALSE or if type != "TS", it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
-  \item{type}{predictor type --- default "TS", use decomposition into  
-trend, signal, and noise ; other type available depending if newdata=NULL. If newdata=NULL (in-sample prediction), "TS", "trend", "TC" and "BP" are available. If newdata is not NULL and have the same rownames than data used to fit the model (forecast case), "trend" and "TC" are available. In other cases (out-of-sample prediction), "TS", "trend", "KP1", "KP2", "KP3", "KP4", "KP5", "TC", "BP", "BPW", "BPN", "TS1" and "TC1" are available.  See \sQuote{Details} and references}
-  \item{all.data}{(only applies if type="TC" and newdata is not NULL) default FALSE: return prediction only for newdata units, if TRUE return prediction for all data units.  See \sQuote{Details}}
+for the data on which the model was fitted. Should have row names corresponding to region.id. If rownames are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
+  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if \code{legacy.mixed=FALSE} or if \code{type!="TS"}, it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
+  \item{type}{predictor type --- default \dQuote{TS}, use decomposition into  
+trend, signal, and noise ; other types available depending on \code{newdata}. If \code{newdata=NULL} (in-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{TC} and \dQuote{BP} are available. If \code{newdata} is not NULL and its row names are the same than the \code{data} used to fit the model (forecast case), \dQuote{trend} and \dQuote{TC} are available. In other cases (out-of-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, \dQuote{TC}, \dQuote{BP}, \dQuote{BPW}, \dQuote{BPN}, \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1} and \dQuote{BPN1} are available.  See \sQuote{Details} and references}
+  \item{all.data}{(only applies to \code{type="TC"} and newdata is not NULL) default FALSE: return predictions only for newdata units, if TRUE return predictions for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
-  \item{legacy}{(Only applies to lag and Durbin (mixed) models, and if type="TS") default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
-  \item{legacy.mixed}{(Only applies to mixed models and if newdata is not NULL) default FALSE: compute lagged variables from both in-sample and out-if-sample units with \eqn{[W X]_O}{[WX]o} and \eqn{[W X]_S}{[WX]s} where X = \code{cbind(X_S, X_O)}, if TRUE compute lagged variables independantly between in-sample and out-of-sample units with \eqn{W_{OO} X_O}{Woo Xo}} and \eqn{W_{SS} X_S}{Wss Xs}} 
-  \item{power}{(Only applies to lag and Durbin (mixed) models for "TS", "KP1", "KP2", "KP3", "TC", "BP", "BPN", "BPW" and "TC1" types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
+  \item{legacy}{(only applies to lag and Durbin (mixed) models for \code{type="TS"}) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
+  \item{legacy.mixed}{(only applies to mixed models if newdata is not NULL) default FALSE: compute lagged variables from both in-sample and out-of-sample units with \eqn{[W X]_O}{[WX]o} and \eqn{[W X]_S}{[WX]s} where \code{X=cbind(Xs, Xo)}, if TRUE compute lagged variables independantly between in-sample and out-of-sample units with \eqn{W_{OO} X_O}{Woo Xo} and \eqn{W_{SS} X_S}{Wss Xs} }
+  \item{power}{(only applies to lag and Durbin (mixed) models for \dQuote{TS}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPN}, \dQuote{BPN1}, \dQuote{BPW} and \dQuote{BPW1} types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
   \item{order}{power series maximum limit if \code{power} is TRUE}
   \item{tol}{tolerance for convergence of power series if \code{power} is TRUE}
   \item{spChk}{should the rownames of data frames be checked against the spatial objects for identity integrity, TRUE, or FALSE, default NULL to use \code{get.spChkOption()}}
@@ -44,7 +44,7 @@ terminate with an error}
 }
 \details{
 In the following, the trend is the non-spatial smooth, the signal is the
-spatial smooth, and the noise is the residual. The fit returned is the
+spatial smooth, and the noise is the residual. The fit returned by \code{type="TS"} is the
 sum of the trend and the signal.
 
 The function approaches prediction first by dividing invocations between 
@@ -96,21 +96,28 @@ influence both the trend and the signal, so that the root mean square
 prediction error in the examples below for this case with newdata is
 smallest, although the model was not the best fit.
 
-The all.data option is useful for some predictors, because some out-of-sample predictors can return different prediction for in-sample units, than the same predictor type for in-sample data. 
+Values for \code{type=} include \dQuote{trend}, \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007).
 
-Values for \code{type=} include \dQuote{trend}, \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BPW}, \dQuote{BPN}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, following the notation in Thomas-Agnan et al. (2015).
+If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatlt on each out-of-sample units.
+
+%\code{listw} should be provided except if \code{newdata=NULL}, if type="trend" and not-mixed model,
+
+\code{all.data} is useful when some out-of-sample predictors return different predictions for in-sample units, than the same predictor type computed only on in-sample data.
+
 }
 \value{
- \code{predict.sarlm()} returns a vector of predictions with two attribute 
-vectors of trend and signal values with class \code{sarlm.pred}. 
-\code{print.sarlm.pred} is a print function for this class, printing and
-returning a data frame with columns: "fit", "trend" and "signal".
+  \code{predict.sarlm()} returns a vector of predictions with three attribute 
+vectors of trend, signal (only for \code{type="TS"}) and region.id values and two other attributes
+of type and call with class \code{sarlm.pred}. 
+
+  \code{print.sarlm.pred()} is a print function for this class, printing and
+returning a data frame with columns: "fit", "trend" and "signal" (when available) and with region.id as row names.
 }
 
-\references{Haining, R. 1990 \emph{Spatial data analysis in the social and environmental sciences}, Cambridge: Cambridge University Press, p. 258; Cressie, N. A. C. 1993 \emph{Statistics for spatial data}, Wiley, New York; Thomas-Agnan, C., Laurent, T. and Goulard, M. 2015 \emph{About predictions in spatial autoregressive models: Optimal and almost optimal strategies}, TSE Working Paper, n. 13-452.}
+\references{Haining, R. 1990 \emph{Spatial data analysis in the social and environmental sciences}, Cambridge: Cambridge University Press, p. 258; Cressie, N. A. C. 1993 \emph{Statistics for spatial data}, Wiley, New York; Thomas-Agnan, C., Laurent, T. and Goulard, M. 2015 \emph{About predictions in spatial autoregressive models: Optimal and almost optimal strategies}, TSE Working Paper, n. 13-452; Kelejian, H. H. and Prucha, I. R. 2007 \emph{The relative efficiencies of various predictors in spatial econometric models containing spatial lags}, Regional Science and Urban Economics, Volume 37, Issue 3, Pages 363--374.}
 \author{Roger Bivand \email{Roger.Bivand@nhh.no} and Martin Gubri}
 
-\seealso{\code{\link{errorsarlm}}, \code{\link{lagsarlm}}}
+\seealso{\code{\link{errorsarlm}}, \code{\link{lagsarlm}}, \code{\link{sacsarlm}}}
 
 \examples{
 data(oldcol)
