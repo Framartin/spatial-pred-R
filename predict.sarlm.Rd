@@ -23,7 +23,7 @@ trend, signal, and noise, or other types of predictors --- see references.
   \item{object}{\code{sarlm} object returned by \code{lagsarlm}, 
 \code{errorsarlm} or \code{sacsarlm}}
   \item{newdata}{data frame in which to predict --- if NULL, predictions are
-for the data on which the model was fitted. Should have row names corresponding to region.id. If rownames are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
+for the data on which the model was fitted. Should have row names corresponding to region.id. If row names are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
   \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if \code{legacy.mixed=FALSE} or if \code{type!="TS"}, it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
   \item{type}{predictor type --- default \dQuote{TS}, use decomposition into  
 trend, signal, and noise ; other types available depending on \code{newdata}. If \code{newdata=NULL} (in-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{TC} and \dQuote{BP} are available. If \code{newdata} is not NULL and its row names are the same than the \code{data} used to fit the model (forecast case), \dQuote{trend} and \dQuote{TC} are available. In other cases (out-of-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, \dQuote{TC}, \dQuote{BP}, \dQuote{BPW}, \dQuote{BPN}, \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1} and \dQuote{BPN1} are available.  See \sQuote{Details} and references}
@@ -36,16 +36,16 @@ terminate with an error}
   \item{power}{(only applies to lag and Durbin (mixed) models for \dQuote{TS}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPN}, \dQuote{BPN1}, \dQuote{BPW} and \dQuote{BPW1} types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
   \item{order}{power series maximum limit if \code{power} is TRUE}
   \item{tol}{tolerance for convergence of power series if \code{power} is TRUE}
-  \item{spChk}{should the rownames of data frames be checked against the spatial objects for identity integrity, TRUE, or FALSE, default NULL to use \code{get.spChkOption()}}
+  \item{spChk}{should the row names of data frames be checked against the spatial objects for identity integrity, TRUE, or FALSE, default NULL to use \code{get.spChkOption()}}
   \item{x}{the object to be printed}
 %   \item{pred.se}{logical, default FALSE, not available for error models}
 %   \item{lagImpact}{object created by \code{impacts} with R sample draws from the fitted model}
   \item{...}{further arguments passed through}
 }
 \details{
-The function supports three types of prediction. In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}). Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with other observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model). Out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (other cases). For extensive definitions, see Thomas-Agnan et al. (2015).
+The function supports three types of prediction. In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}). Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with different observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model). And out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (\code{newdata} has different row names). For extensive definitions, see Thomas-Agnan et al. (2015).
 
-\code{type} of predictors are available according to the model of \code{object}. In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}. Becareful in this last case, the computation of a inappropriate predictor can have no theorical justifications.
+\code{type} of predictors are available according to the model of \code{object} an to the type of prediction. In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop with an error, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}. In the last case, be careful with the computation of a inappropriate predictor.
 
 \emph{In-sample predictors by models}
 
@@ -58,6 +58,7 @@ The function supports three types of prediction. In-sample prediction is the com
   \dQuote{BP}   \tab  no \tab  yes \tab  yes* \cr
 }
 
+Note that only \dQuote{trend} and \dQuote{TC} are available for prevision.
 
 \emph{Out-of-sample predictors by models}
 
@@ -137,7 +138,7 @@ influence both the trend and the signal, so that the root mean square
 prediction error in the examples below for this case with newdata is
 smallest, although the model was not the best fit.
 
-If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatlt on each out-of-sample units.
+If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatly on each out-of-sample unit.
 
 \code{listw} should be provided except if \code{newdata=NULL} and \code{type=} include \dQuote{TS}, \dQuote{trend}, or if \code{newdata} is not \code{NULL}, \code{type="trend"} and \code{object} is not a mixed model. 
 
