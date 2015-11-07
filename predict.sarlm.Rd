@@ -9,7 +9,7 @@ model objects}
 \description{
   \code{predict.sarlm()} calculates predictions as far as is at present possible for for spatial simultaneous autoregressive linear
 model objects, using Haining's terminology for decomposition into
-trend, signal, and noise, or other types of predictors --- see references.
+trend, signal, and noise, or other types of predictors --- see references.  
 }
 \usage{
 \method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = "TS", all.data = FALSE,
@@ -43,9 +43,9 @@ terminate with an error}
   \item{...}{further arguments passed through}
 }
 \details{
-The function supports three types of prediction. In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}). Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with different observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model). And out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (\code{newdata} has different row names). For extensive definitions, see Thomas-Agnan et al. (2015).
+The function supports three types of prediction.  In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}).  Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with different observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model).  And out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (\code{newdata} has different row names).  For extensive definitions, see Thomas-Agnan et al. (2015).
 
-\code{type} of predictors are available according to the model of \code{object} an to the type of prediction. In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop with an error, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}. In the last case, be careful with the computation of a inappropriate predictor.
+\code{type} of predictors are available according to the model of \code{object} an to the type of prediction.  In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop with an error, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}.  In the last case, be careful with the computation of a inappropriate predictor.
 
 \emph{In-sample predictors by models}
 
@@ -81,30 +81,30 @@ Note that only \dQuote{trend} and \dQuote{TC} are available for prevision.
   \dQuote{KP5}   \tab  yes \tab  no \tab  yes* \cr
 }
 
-Values for \code{type=} include \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007). \code{type="TS"} is described bellow and in Bivand (2002).
+Values for \code{type=} include \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007).  \code{type="TS"} is described bellow and in Bivand (2002).  
 
 
 In the following, the trend is the non-spatial smooth, the signal is the
-spatial smooth, and the noise is the residual. The fit returned by \code{type="TS"} is the
-sum of the trend and the signal.
+spatial smooth, and the noise is the residual.  The fit returned by \code{type="TS"} is the
+sum of the trend and the signal.  
 
 When \code{type="TS"}, the function approaches prediction first by dividing invocations between 
-those with or without newdata. When no newdata is present, the response 
+those with or without newdata.  When no newdata is present, the response 
 variable may be reconstructed as the sum of the trend, the signal, and the
-noise (residuals). Since the values of the response variable are known,
-their spatial lags are used to calculate signal components (Cressie 1993, p. 564). For the error
+noise (residuals).  Since the values of the response variable are known,
+their spatial lags are used to calculate signal components (Cressie 1993, p. 564).  For the error
 model, trend = \eqn{X \beta}{X beta}, and signal = \eqn{\lambda W y - 
 \lambda W X \beta}{lambda W y - lambda W X beta}. For the lag and mixed
 models, trend = \eqn{X \beta}{X beta}, and signal = \eqn{\rho W y}{rho W y}.
 
 This approach differs from the design choices made in other software, for
 example GeoDa, which does not use observations of the response variable,
-and corresponds to the newdata situation described below.
+and corresponds to the newdata situation described below.  
 
 When however newdata is used for prediction, no observations of the response 
-variable being predicted are available. Consequently, while the trend
+variable being predicted are available.  Consequently, while the trend
 components are the same, the signal cannot take full account of the spatial
-smooth. In the error model and Durbin error model, the signal is set to zero, since the spatial smooth is expressed in terms of the error: 
+smooth.  In the error model and Durbin error model, the signal is set to zero, since the spatial smooth is expressed in terms of the error: 
 \eqn{(I - \lambda W)^{-1} \varepsilon}{inv(I - lambda W) e}.
 
 In the lag model, the signal can be expressed in the following way (for legacy=TRUE):
@@ -124,25 +124,25 @@ next the prediction using the DGP:
 
 \deqn{(I - \rho W)^{-1} X \beta}{inv(I - rho W) X beta}
 
-and the signal is found as the difference between prediction and trend. The numerical results for the legacy and DGP methods are identical.
+and the signal is found as the difference between prediction and trend. The numerical results for the legacy and DGP methods are identical.  
 
 %TODO: words missing?
-setting the error term to zero. This also means that predictions of the
+setting the error term to zero.  This also means that predictions of the
 signal component for lag and mixed models require the inversion of an 
-n-by-n matrix.
+n-by-n matrix.  
 
 Because the outcomes of the spatial smooth on the error term are
 unobservable, this means that the signal values for newdata are
-incomplete. In the mixed model, the spatially lagged RHS variables
+incomplete.  In the mixed model, the spatially lagged RHS variables
 influence both the trend and the signal, so that the root mean square
 prediction error in the examples below for this case with newdata is
-smallest, although the model was not the best fit.
+smallest, although the model was not the best fit.  
 
-If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatly on each out-of-sample unit.
+If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatly on each out-of-sample unit.  
 
-\code{listw} should be provided except if \code{newdata=NULL} and \code{type=} include \dQuote{TS}, \dQuote{trend}, or if \code{newdata} is not \code{NULL}, \code{type="trend"} and \code{object} is not a mixed model. 
+\code{listw} should be provided except if \code{newdata=NULL} and \code{type=} include \dQuote{TS}, \dQuote{trend}, or if \code{newdata} is not \code{NULL}, \code{type="trend"} and \code{object} is not a mixed model.  % TODO: describe listw
 
-\code{all.data} is useful when some out-of-sample predictors return different predictions for in-sample units, than the same predictor type computed only on in-sample data.
+\code{all.data} is useful when some out-of-sample predictors return different predictions for in-sample units, than the same predictor type computed only on in-sample data.  
 
 }
 \value{
