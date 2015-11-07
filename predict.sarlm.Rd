@@ -43,11 +43,51 @@ terminate with an error}
   \item{...}{further arguments passed through}
 }
 \details{
+The function supports three types of prediction. In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}). Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with other observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model). Out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (other cases). For extensive definitions, see Thomas-Agnan et al. (2015).
+
+\code{type} of predictors are available according to the model of \code{object}. In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}. Becareful in this last case, the computation of a inappropriate predictor can have no theorical justifications.
+
+\emph{In-sample predictors by models}
+
+\tabular{lccc}{
+  type \tab sem (mixed) \tab lag (mixed) \tab sac (mixed) \cr
+        \tab     \tab  \tab  \cr
+  \dQuote{trend} \tab  yes \tab  yes \tab  yes \cr
+  \dQuote{TS}   \tab  yes \tab  yes \tab  no \cr
+  \dQuote{TC}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{BP}   \tab  no \tab  yes \tab  yes* \cr
+}
+
+
+\emph{Out-of-sample predictors by models}
+
+\tabular{lccc}{
+  type \tab sem (mixed) \tab lag (mixed) \tab sac (mixed) \cr
+        \tab     \tab  \tab  \cr
+  \dQuote{trend} \tab  yes \tab  yes \tab  yes \cr
+  \dQuote{TS}   \tab  yes \tab  yes \tab  no \cr
+  \dQuote{TS1} or \dQuote{KP4}   \tab  no \tab  yes \tab  yes \cr
+  \dQuote{TC}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{TC1} or \dQuote{KP1}  \tab  yes \tab  yes \tab  yes \cr
+  \dQuote{BP}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{BP1}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{BPW}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{BPW1}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{BN}     \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{BPN1}   \tab  no \tab  yes \tab  yes* \cr
+  \dQuote{KP2}   \tab  yes \tab  yes \tab  yes \cr
+  \dQuote{KP3}   \tab  yes \tab  yes \tab  yes \cr
+  \dQuote{KP5}   \tab  yes \tab  no \tab  yes* \cr
+}
+
+Values for \code{type=} include \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007). \code{type="TS"} is described bellow and in Bivand (2002).
+
+
 In the following, the trend is the non-spatial smooth, the signal is the
 spatial smooth, and the noise is the residual. The fit returned by \code{type="TS"} is the
 sum of the trend and the signal.
 
-The function approaches prediction first by dividing invocations between 
+When \code{type="TS"}, the function approaches prediction first by dividing invocations between 
 those with or without newdata. When no newdata is present, the response 
 variable may be reconstructed as the sum of the trend, the signal, and the
 noise (residuals). Since the values of the response variable are known,
@@ -68,7 +108,7 @@ smooth. In the error model and Durbin error model, the signal is set to zero, si
 
 In the lag model, the signal can be expressed in the following way (for legacy=TRUE):
 
-\deqn{(I - \rho W) y = X \beta + \varepsilon}{(I - rho W) y = X beta + e},
+\deqn{(I - \rho W) y = X \beta + \varepsilon}{(I - rho W) y = X beta + e}
 \deqn{y = (I - \rho W)^{-1} X \beta + (I - \rho W)^{-1} \varepsilon}{y = inv(I - rho W) X beta + inv(I - rho W) e}
 
 giving a feasible signal component of:
@@ -85,6 +125,7 @@ next the prediction using the DGP:
 
 and the signal is found as the difference between prediction and trend. The numerical results for the legacy and DGP methods are identical.
 
+%TODO: words missing?
 setting the error term to zero. This also means that predictions of the
 signal component for lag and mixed models require the inversion of an 
 n-by-n matrix.
@@ -96,11 +137,9 @@ influence both the trend and the signal, so that the root mean square
 prediction error in the examples below for this case with newdata is
 smallest, although the model was not the best fit.
 
-Values for \code{type=} include \dQuote{trend}, \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007).
-
 If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatlt on each out-of-sample units.
 
-%\code{listw} should be provided except if \code{newdata=NULL}, if type="trend" and not-mixed model,
+\code{listw} should be provided except if \code{newdata=NULL} and \code{type=} include \dQuote{TS}, \dQuote{trend}, or if \code{newdata} is not \code{NULL}, \code{type="trend"} and \code{object} is not a mixed model. 
 
 \code{all.data} is useful when some out-of-sample predictors return different predictions for in-sample units, than the same predictor type computed only on in-sample data.
 
@@ -114,7 +153,7 @@ of type and call with class \code{sarlm.pred}.
 returning a data frame with columns: "fit", "trend" and "signal" (when available) and with region.id as row names.
 }
 
-\references{Haining, R. 1990 \emph{Spatial data analysis in the social and environmental sciences}, Cambridge: Cambridge University Press, p. 258; Cressie, N. A. C. 1993 \emph{Statistics for spatial data}, Wiley, New York; Thomas-Agnan, C., Laurent, T. and Goulard, M. 2015 \emph{About predictions in spatial autoregressive models: Optimal and almost optimal strategies}, TSE Working Paper, n. 13-452; Kelejian, H. H. and Prucha, I. R. 2007 \emph{The relative efficiencies of various predictors in spatial econometric models containing spatial lags}, Regional Science and Urban Economics, Volume 37, Issue 3, Pages 363--374.}
+\references{Haining, R. 1990 \emph{Spatial data analysis in the social and environmental sciences}, Cambridge: Cambridge University Press, p. 258; Cressie, N. A. C. 1993 \emph{Statistics for spatial data}, Wiley, New York; Thomas-Agnan, C., Laurent, T. and Goulard, M. 2015 \emph{About predictions in spatial autoregressive models: Optimal and almost optimal strategies}, TSE Working Paper, n. 13-452; Kelejian, H. H. and Prucha, I. R. 2007 \emph{The relative efficiencies of various predictors in spatial econometric models containing spatial lags}, Regional Science and Urban Economics, Volume 37, Issue 3, 363--374; Bivand, R. 2002 \emph{Spatial econometrics functions in R: Classes and methods}, Journal of Geographical Systems, Volume 4, No. 4, 405--421}
 \author{Roger Bivand \email{Roger.Bivand@nhh.no} and Martin Gubri}
 
 \seealso{\code{\link{errorsarlm}}, \code{\link{lagsarlm}}, \code{\link{sacsarlm}}}
