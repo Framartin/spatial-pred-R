@@ -1,4 +1,4 @@
-# Copyright 2001-10 by Roger Bivand, Markus Reder and Werner Mueller
+# Copyright 2001-10 by Roger Bivand, Markus Reder and Werner Mueller, 2015 Martin Gubri
 #
 
 
@@ -42,7 +42,8 @@ invIrW <- function(x, rho, method="solve", feasible=NULL) {
 	  n <- length(x$neighbours)
 	  V <- listw2mat(x)
 	} else if (inherits(x, "Matrix") || inherits(x, "matrix")) {
-	  if (method == "chol") stop("No Cholesky method for matrix or sparse matrix object")
+	  if (method == "chol" && all(t(x) == x))
+            stop("No Cholesky method for matrix or sparse matrix object")
           n <- dim(x)[1]
           V <- x
 	} else stop("Not a weights list or a Sparse Matrix")
