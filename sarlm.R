@@ -1,4 +1,3 @@
-
 # Copyright 2002-12 by Roger Bivand, 2015 Martin Gubri
 #
 
@@ -47,20 +46,20 @@ fitted.sarlm <- function(object, ...) {
 }
 
 
-predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=FALSE,
+predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.data=FALSE,
                           zero.policy=NULL, legacy=TRUE, legacy.mixed=FALSE, power=NULL, order=250, tol=.Machine$double.eps^(3/5), #pred.se=FALSE, lagImpact=NULL, 
                           spChk=NULL, ...) {
   if (is.null(zero.policy))
     zero.policy <- get("zeroPolicy", envir = .spdepOptions)
   stopifnot(is.logical(zero.policy))
-  if (is.null(type)) type <- "TS"
-  # check type with model
-  if (type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
-  if (type %in% c("TC", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1", "BPN1") & object$type == "error") stop("no such predict method for error model")
-  if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
+  if (is.null(pred.type)) pred.type <- "TS"
+  # check pred.type with model
+  if (pred.type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
+  if (pred.type %in% c("TC", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1", "BPN1") & object$type == "error") stop("no such predict method for error model")
+  if (pred.type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
-  if (type %in% c("TC", "BP", "BPW", "BPN", "BP1", "BPW1", "BPN1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
-  if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
+  if (pred.type %in% c("TC", "BP", "BPW", "BPN", "BP1", "BPW1", "BPN1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (pred.type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
   
   
   if (is.null(power)) power <- object$method != "eigen"
@@ -89,7 +88,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   # forecast case: newdata with the same names than data
   # use a sub-samble of in-sample predictors
   if (!is.null(newdata) && nrow(newdata) == length(ys) && rownames(newdata) == attr(ys, "names")) {
-    if (!type %in% c("trend", "TC")) warning("no such predictor type for prevision")
+    if (!pred.type %in% c("trend", "TC")) warning("no such predictor type for prevision")
     # DATA
     frm <- formula(object$call)
     mt <- delete.response(terms(frm, data=newdata)) # returns a terms object for the same model but with no response variable
@@ -150,7 +149,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   
   
   if (is.null(newdata)) { # in-sample pred
-    if (type == "TS") { # defaut predictor
+    if (pred.type == "TS") { # defaut predictor
       res <- fitted.values(object)
       if (object$type == "error") { # We ou WX+We
         attr(res, "trend") <- as.vector(trends)
@@ -160,7 +159,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         attr(res, "signal") <- as.vector( -1 * (tarys - ys))
       }
     } else { # new predictors
-      if (type != "trend") { # need listw
+      if (pred.type != "trend") { # need listw
         if (is.null(listw) || !inherits(listw, "listw"))
           stop ("spatial weights list required")
         if (nrow(Xs) != length(listw$neighbours))
@@ -169,7 +168,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           stop("Check of data and weights ID integrity failed")
       }
       
-      if (type %in% c("TC", "BP")) { # need to compute TC
+      if (pred.type %in% c("TC", "BP")) { # need to compute TC
         if (power){
           W <- as(listw, "CsparseMatrix")
           TC <- powerWeights(W, rho = object$rho, X = Xs, order = order, tol = tol) %*% B
@@ -178,11 +177,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         }
       }
       
-      if (type == "trend") {
+      if (pred.type == "trend") {
         res <- as.vector(trends)
-      } else if(type == "TC") {
+      } else if(pred.type == "TC") {
         res <- as.vector(TC)
-      } else if(type == "BP") {
+      } else if(pred.type == "BP") {
         W <- as(listw, "CsparseMatrix")
         Qss <- 1/object$s2 * (Diagonal(dim(W)[1]) - (object$rho * t(W))) %*% (Diagonal(dim(W)[1]) - (object$rho * W)) # precision matrix for LAG model
         DiagQss <- Diagonal(x = diag(Qss))
@@ -192,13 +191,13 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
       } else {
         stop("no such in-sample predictor type")
       }
-      if (type != "trend") attr(res, "trend") <- as.vector(trends)
+      if (pred.type != "trend") attr(res, "trend") <- as.vector(trends)
     }
     attr(res, "region.id") <- as.vector(attr(ys, "names"))
   } else { # out-of-sample
     #CHECK
     if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
-    if (!(type == "TS" && object$type == "error" && object$etype == "error") && !(type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
+    if (!(pred.type == "TS" && object$type == "error" && object$etype == "error") && !(pred.type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
       if (any(! rownames(newdata) %in% attr(listw, "region.id")))
@@ -206,7 +205,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
       listw.old <- NULL
       
       # wanted order of the listw
-      if (type == "TS") { # only need Woo
+      if (pred.type == "TS") { # only need Woo
         region.id <- rownames(newdata)
         if (!legacy.mixed) listw.old <- listw # keep the old listw to allow the computation of lagged variable from the full WX
         # listw <- mat2listw(matrix(0), row.names = rownames(newdata)) # avoid crash of subset.listw
@@ -328,7 +327,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
     }
     trendo <- Xo %*% B
     
-    if (type == "TS") { # defaut predictor
+    if (pred.type == "TS") { # defaut predictor
       if (object$type == "error") {
         if (object$etype == "error") { # We
           signal <- rep(0, length(trendo))
@@ -419,14 +418,14 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         attr(res, "signal") <- c(signal)
       }
     } else { # new predictors
-      if (type %in% c("TS1", "KP4", "KP2", "KP3")) { # need to compute TS1/KP4
+      if (pred.type %in% c("TS1", "KP4", "KP2", "KP3")) { # need to compute TS1/KP4
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
         if (is.null(object$rho)) TS1 <- Xo %*% B
         else TS1 <- Xo %*% B + object$rho * Wos %*% ys
       }
-      if (type %in% c("TC", "BP", "BPN")) { # need to compute TC
+      if (pred.type %in% c("TC", "BP", "BPN")) { # need to compute TC
         #notations of C.Thomas and al (2015)
-        if (all.data | type %in% c("BP", "BPN")) {
+        if (all.data | pred.type %in% c("BP", "BPN")) {
           # compute s and o units together
           X <- rbind(Xs, Xo)
           trend <- X %*% B
@@ -461,17 +460,17 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         }
       }
       
-      if (type == "trend") {
+      if (pred.type == "trend") {
         res <- as.vector(trendo)
-      } else if (type %in% c("TS1", "KP4")) {
+      } else if (pred.type %in% c("TS1", "KP4")) {
         res <- as.vector(TS1)
-      } else if (type == "TC") {
+      } else if (pred.type == "TC") {
         if(all.data) {
           res <- as.vector(TC)
         } else {
           res <- as.vector(TCo)
         }
-      } else if (type == "BP") {
+      } else if (pred.type == "BP") {
         is.data <- 1:length(ys)
         is.newdata <- (length(ys)+1):length(TC)
         TCo <- TC[is.newdata]
@@ -482,7 +481,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         Qos <- Q[is.newdata, is.data]
         BPo <- TCo - solve(Qoo) %*% Qos %*% (ys - TCs)
         res <- as.vector(BPo)
-      } else if (type == "BPW") {
+      } else if (pred.type == "BPW") {
         if (power){
           W <- as(listw, "CsparseMatrix")
           invW <- powerWeights(W, rho = object$rho, X = Diagonal(dim(W)[1]), order = order, tol = tol)
@@ -502,7 +501,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
         BPW <- as.numeric(TCo + Sos %*% t(Wos) %*% solve(Wos %*% Sss %*% t(Wos)) %*% (Wos %*% ys - Wos %*% TCs))
         res <- as.vector(BPW)
-      } else if (type == "BPN") {
+      } else if (pred.type == "BPN") {
         is.data <- 1:length(ys)
         is.newdata <- (length(ys)+1):length(TC)
         TCs <- TC[is.data]
@@ -542,7 +541,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           BPN <- as.vector(TCo - solve(Qoo) %*% Qoj %*% (yj - TCj))
         }
         res <- as.vector(BPN)
-      } else if (type %in% c("TC1", "KP1")) {
+      } else if (pred.type %in% c("TC1", "KP1")) {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -566,7 +565,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
             res[i] <- (invIrW(listwi, object$rho) %*% trendi)[length(region.id.temp)]
           }
         }
-      } else if (type == "BP1") {
+      } else if (pred.type == "BP1") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -601,7 +600,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           BP1o[i] <- TC1oi - solve(Qooi) %*% Qosi %*% (ys - TC1si)
         }
         res <- as.vector(BP1o)
-      } else if (type == "BPW1") {
+      } else if (pred.type == "BPW1") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -635,7 +634,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           BPW1o[i] <- as.numeric(TC1oi + Sosi %*% t(Wosi) %*% solve(Wosi %*% Sssi %*% t(Wosi)) %*% (Wosi %*% ys - Wosi %*% TC1si))
         }
         res <- as.vector(BPW1o)
-      } else if (type == "BPN1") {
+      } else if (pred.type == "BPN1") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -690,7 +689,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           }
         }
         res <- as.vector(BPN1o)
-      } else if (type == "KP2") {
+      } else if (pred.type == "KP2") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -737,7 +736,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           KP2[i] <- TS1[i] + covar %*% (wi %*% yi - Ewiy)
         }
         res <- as.vector(KP2)
-      } else if (type == "KP3") {
+      } else if (pred.type == "KP3") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         region.id.data <- attr(ys, "names")
@@ -783,7 +782,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
           KP3[i] <- as.vector(TS1[i] + cov %*% solve(sum.y[-length(region.id.temp), -length(region.id.temp)]) %*% (ys - GR[-length(region.id.temp),] %*% Xi %*% B))
         }
         res <- as.vector(KP3)
-      } else if (type == "KP5") {
+      } else if (pred.type == "KP5") {
         if (nrow(newdata) > 1)
           warning("newdata have more than 1 row and the predictor type is leave-one-out")
         Wos <- .listw.decompose(listw, region.id.data = attr(ys, "names"), region.id.newdata = rownames(newdata), type = "Wos")$Wos
@@ -799,7 +798,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
       attr(res, "region.id") <- c(attr(ys, "names"), rownames(newdata))
     } else stop("incorrect final output")
   }
-  attr(res, "type") <- type
+  attr(res, "pred.type") <- pred.type
   attr(res, "call") <- match.call()
   class(res) <- "sarlm.pred"
   res

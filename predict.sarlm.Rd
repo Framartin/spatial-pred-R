@@ -12,7 +12,7 @@ model objects, using Haining's terminology for decomposition into
 trend, signal, and noise, or other types of predictors --- see references.  
 }
 \usage{
-\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, type = "TS", all.data = FALSE,
+\method{predict}{sarlm}(object, newdata = NULL, listw = NULL, pred.type = "TS", all.data = FALSE,
  zero.policy = NULL, legacy = TRUE, legacy.mixed = FALSE, power = NULL, order = 250,
  tol = .Machine$double.eps^(3/5), spChk = NULL, ...)
 \method{print}{sarlm.pred}(x, ...)
@@ -24,14 +24,14 @@ trend, signal, and noise, or other types of predictors --- see references.
 \code{errorsarlm} or \code{sacsarlm}}
   \item{newdata}{data frame in which to predict --- if NULL, predictions are
 for the data on which the model was fitted. Should have row names corresponding to region.id. If row names are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
-  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if \code{legacy.mixed=FALSE} or if \code{type!="TS"}, it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
-  \item{type}{predictor type --- default \dQuote{TS}, use decomposition into  
+  \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if \code{legacy.mixed=FALSE} or if \code{pred.type!="TS"}, it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
+  \item{pred.type}{predictor type --- default \dQuote{TS}, use decomposition into  
 trend, signal, and noise ; other types available depending on \code{newdata}. If \code{newdata=NULL} (in-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{TC} and \dQuote{BP} are available. If \code{newdata} is not NULL and its row names are the same than the \code{data} used to fit the model (forecast case), \dQuote{trend} and \dQuote{TC} are available. In other cases (out-of-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, \dQuote{TC}, \dQuote{BP}, \dQuote{BPW}, \dQuote{BPN}, \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1} and \dQuote{BPN1} are available.  See \sQuote{Details} and references}
-  \item{all.data}{(only applies to \code{type="TC"} and newdata is not NULL) default FALSE: return predictions only for newdata units, if TRUE return predictions for all data units.  See \sQuote{Details}}
+  \item{all.data}{(only applies to \code{pred.type="TC"} and newdata is not NULL) default FALSE: return predictions only for newdata units, if TRUE return predictions for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
 terminate with an error}
-  \item{legacy}{(only applies to lag and Durbin (mixed) models for \code{type="TS"}) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
+  \item{legacy}{(only applies to lag and Durbin (mixed) models for \code{pred.type="TS"}) default TRUE: use ad-hoc predictor, if FALSE use DGP-based predictor}
   \item{legacy.mixed}{(only applies to mixed models if newdata is not NULL) default FALSE: compute lagged variables from both in-sample and out-of-sample units with \eqn{[W X]_O}{[WX]o} and \eqn{[W X]_S}{[WX]s} where \code{X=cbind(Xs, Xo)}, if TRUE compute lagged variables independantly between in-sample and out-of-sample units with \eqn{W_{OO} X_O}{Woo Xo} and \eqn{W_{SS} X_S}{Wss Xs} }
   \item{power}{(only applies to lag and Durbin (mixed) models for \dQuote{TS}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPN}, \dQuote{BPN1}, \dQuote{BPW} and \dQuote{BPW1} types) use \code{powerWeights}, if default NULL, set FALSE if \code{object$method} is \dQuote{eigen}, otherwise TRUE}
   \item{order}{power series maximum limit if \code{power} is TRUE}
@@ -45,12 +45,12 @@ terminate with an error}
 \details{
 The function supports three types of prediction.  In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}).  Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with different observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model).  And out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (\code{newdata} has different row names).  For extensive definitions, see Thomas-Agnan et al. (2015). % add that warning if out-of-sample with newdata containing one in-sample spatial unit
 
-\code{type} of predictors are available according to the model of \code{object} an to the type of prediction.  In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop with an error, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}.  In the last case, be careful with the computation of a inappropriate predictor.
+\code{pred.type} of predictors are available according to the model of \code{object} an to the type of prediction.  In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop with an error, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}.  In the last case, be careful with the computation of a inappropriate predictor.
 
 \emph{In-sample predictors by models}
 
 \tabular{lccc}{
-  type \tab sem (mixed) \tab lag (mixed) \tab sac (mixed) \cr
+  pred.type \tab sem (mixed) \tab lag (mixed) \tab sac (mixed) \cr
         \tab     \tab  \tab  \cr
   \dQuote{trend} \tab  yes \tab  yes \tab  yes \cr
   \dQuote{TS}   \tab  yes \tab  yes \tab  no \cr
@@ -63,7 +63,7 @@ Note that only \dQuote{trend} and \dQuote{TC} are available for prevision.
 \emph{Out-of-sample predictors by models}
 
 \tabular{lccc}{
-  type \tab sem (mixed) \tab lag (mixed) \tab sac (mixed) \cr
+  pred.type \tab sem (mixed) \tab lag (mixed) \tab sac (mixed) \cr
         \tab     \tab  \tab  \cr
   \dQuote{trend} \tab  yes \tab  yes \tab  yes \cr
   \dQuote{TS}   \tab  yes \tab  yes \tab  no \cr
@@ -81,14 +81,14 @@ Note that only \dQuote{trend} and \dQuote{TC} are available for prevision.
   \dQuote{KP5}   \tab  yes \tab  no \tab  yes* \cr
 }
 
-Values for \code{type=} include \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007).  \code{type="TS"} is described bellow and in Bivand (2002).  
+Values for \code{pred.type=} include \dQuote{TS1}, \dQuote{TC}, \dQuote{TC1}, \dQuote{BP}, \dQuote{BP1}, \dQuote{BPW}, \dQuote{BPW1}, \dQuote{BPN}, \dQuote{BPN1}, following the notation in Thomas-Agnan et al. (2015), and for \code{pred.type=} \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, following the notation in Kelejian et al. (2007).  \code{pred.type="TS"} is described bellow and in Bivand (2002).  
 
 
 In the following, the trend is the non-spatial smooth, the signal is the
-spatial smooth, and the noise is the residual.  The fit returned by \code{type="TS"} is the
+spatial smooth, and the noise is the residual.  The fit returned by \code{pred.type="TS"} is the
 sum of the trend and the signal.  
 
-When \code{type="TS"}, the function approaches prediction first by dividing invocations between 
+When \code{pred.type="TS"}, the function approaches prediction first by dividing invocations between 
 those with or without newdata.  When no newdata is present, the response 
 variable may be reconstructed as the sum of the trend, the signal, and the
 noise (residuals).  Since the values of the response variable are known,
@@ -138,17 +138,17 @@ influence both the trend and the signal, so that the root mean square
 prediction error in the examples below for this case with newdata is
 smallest, although the model was not the best fit.  
 
-If \code{newdata} has more than one row, leave-one-out predictors (\code{type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatly on each out-of-sample unit.  
+If \code{newdata} has more than one row, leave-one-out predictors (\code{pred.type=} include \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1}, \dQuote{BPN1}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}) are computed separatly on each out-of-sample unit.  
 
-\code{listw} should be provided except if \code{newdata=NULL} and \code{type=} include \dQuote{TS}, \dQuote{trend}, or if \code{newdata} is not \code{NULL}, \code{type="trend"} and \code{object} is not a mixed model.  % TODO: describe listw
+\code{listw} should be provided except if \code{newdata=NULL} and \code{pred.type=} include \dQuote{TS}, \dQuote{trend}, or if \code{newdata} is not \code{NULL}, \code{pred.type="trend"} and \code{object} is not a mixed model.  % TODO: describe listw
 
 \code{all.data} is useful when some out-of-sample predictors return different predictions for in-sample units, than the same predictor type computed only on in-sample data.  
 
 }
 \value{
   \code{predict.sarlm()} returns a vector of predictions with three attribute 
-vectors of trend, signal (only for \code{type="TS"}) and region.id values and two other attributes
-of type and call with class \code{sarlm.pred}. 
+vectors of trend, signal (only for \code{pred.type="TS"}) and region.id values and two other attributes
+of pred.type and call with class \code{sarlm.pred}. 
 
   \code{print.sarlm.pred()} is a print function for this class, printing and
 returning a data frame with columns: "fit", "trend" and "signal" (when available) and with region.id as row names.
@@ -167,7 +167,7 @@ COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw)
 COL.mix.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw,
   type="mixed")
 print(p1 <- predict(COL.mix.eig))
-print(p2 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS"))
+print(p2 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS"))
 AIC(COL.mix.eig)
 sqrt(deviance(COL.mix.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(p1))^2)/length(COL.nb))
@@ -178,7 +178,7 @@ AIC(COL.err.eig)
 sqrt(deviance(COL.err.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.err.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.err.eig, newdata=COL.OLD,
-  listw=lw, type = "TS")))^2)/length(COL.nb))
+  listw=lw, pred.type = "TS")))^2)/length(COL.nb))
 
 COL.SDerr.eig <- errorsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw,
  etype="emixed")
@@ -186,19 +186,19 @@ AIC(COL.SDerr.eig)
 sqrt(deviance(COL.SDerr.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.SDerr.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.SDerr.eig, newdata=COL.OLD,
-  listw=lw, type = "TS")))^2)/length(COL.nb))
+  listw=lw, pred.type = "TS")))^2)/length(COL.nb))
 
 AIC(COL.lag.eig)
 sqrt(deviance(COL.lag.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.lag.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.lag.eig, newdata=COL.OLD,
-  listw=lw, type = "TS")))^2)/length(COL.nb))
+  listw=lw, pred.type = "TS")))^2)/length(COL.nb))
 
-p3 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS", legacy=FALSE)
+p3 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=FALSE)
 all.equal(p2, p3, check.attributes=FALSE)
-p4 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS", legacy=FALSE, power=TRUE)
+p4 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=FALSE, power=TRUE)
 all.equal(p2, p4, check.attributes=FALSE)
-p5 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, type = "TS", legacy=TRUE, power=TRUE)
+p5 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=TRUE, power=TRUE)
 all.equal(p2, p5, check.attributes=FALSE)
 }
 
