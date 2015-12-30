@@ -56,10 +56,10 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
   if (is.null(type)) type <- "TS"
   # check type with model
   if (type %in% c("TS") & object$type %in% c("sac", "sacmixed")) stop("no such predict method for sac model")
-  if (type %in% c("TC", "TS", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1", "BPN1") & object$type == "error") stop("no such predict method for error model")
+  if (type %in% c("TC", "BP", "BPW", "BPN", "TS1", "BP1", "BPW1", "BPN1") & object$type == "error") stop("no such predict method for error model")
   if (type %in% c("KP5") & object$type %in% c("lag", "lagmixed")) stop("no such predict method for lag model")
   
-  if (type %in% c("BP", "BPW", "BPN", "BP1", "BPW1", "BPN1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
+  if (type %in% c("TC", "BP", "BPW", "BPN", "BP1", "BPW1", "BPN1") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for lag model, use carefully")
   if (type %in% c("KP5") & object$type %in% c("sac", "sacmixed")) warning("predict method developed for sem model, use carefully")
   
   
@@ -99,7 +99,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
     if (dim(mf)[1] != nrow(newdata))
       stop("missing values in newdata")
     Xs <- model.matrix(mt, mf)
-        
+    
     if (object$type == "mixed" || (object$type == "error" && object$etype == "emixed")) { # mixed model: compute WXo
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
@@ -219,7 +219,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         if (all(subset(attr(listw, "region.id"), attr(listw, "region.id") %in% region.id) == region.id) && listw$style != "M") { # only need a subset.listw, ie. spatial units are in the right order and if weights style is not unknown
           listw <- subset.listw(listw, (attr(listw, "region.id") %in% region.id), zero.policy = zero.policy)
         } else { # we use a sparse matrix transformation to reorder a listw
-          if (listw$style == "M") warning("unknown weight style: listw is reorganized without re-normalization")
+          if (listw$style == "M") warning("unknown weight style: a subset of listw is used without re-normalization")
           W <- as(listw, "CsparseMatrix")
           W <- W[region.id, region.id]
           style <- listw$style
@@ -272,7 +272,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         if (all(subset(attr(listw.mixed, "region.id"), attr(listw.mixed, "region.id") %in% region.id.mixed) == region.id.mixed) && listw.mixed$style != "M") { # only need a subset.listw, ie. spatial units are in the right order and weights style is not unknown
           listw.mixed <- subset.listw(listw.mixed, attr(listw.mixed, "region.id") %in% region.id.mixed, zero.policy = zero.policy)
         } else { # we use a sparse matrix transformation to reorder a listw
-          if (listw$style == "M") warning("unknown weight style: listw is reorganized without re-normalization")
+          if (listw$style == "M") warning("unknown weight style: a subset of listw is used without re-normalization")
           W <- as(listw.mixed, "CsparseMatrix")
           W <- W[region.id.mixed, region.id.mixed]
           style <- listw.mixed$style
@@ -549,15 +549,21 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         region.id.newdata <- rownames(newdata)
         res <- rep(NA, nrow(newdata))
         W <- as(listw, "CsparseMatrix")
+        style <- listw$style
+        if (listw$style == "M")
+          warning("unknown weight style: a subset of listw is used without re-normalization")
         for (i in 1:nrow(newdata)) {
           region.id.temp <- c(region.id.data, region.id.newdata[i])
           Wi <- W[region.id.temp, region.id.temp]
+          listwi <- mat2listw(Wi, row.names = region.id.temp, style = style) # re-normalize
+          if (power)
+            Wi <- as(listwi, "CsparseMatrix")
           Xi <- rbind(Xs, Xo[i,])
           if (power) {
             res[i] <- c(as(powerWeights(Wi, rho=object$rho, X=Xi, order=order, tol=tol), "matrix") %*% B)[length(region.id.temp)]
           } else {
             trendi <- c(trends, trendo[i])
-            res[i] <- (invIrW(Wi, object$rho) %*% trendi)[length(region.id.temp)]
+            res[i] <- (invIrW(listwi, object$rho) %*% trendi)[length(region.id.temp)]
           }
         }
       } else if (type == "BP1") {
@@ -567,9 +573,14 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         region.id.newdata <- rownames(newdata)
         BP1o <- rep(NA, nrow(newdata))
         W <- as(listw, "CsparseMatrix")
+        style <- listw$style
+        if (listw$style == "M")
+          warning("unknown weight style: a subset of listw is used without re-normalization")
         for (i in 1:nrow(newdata)) {
           region.id.temp <- c(region.id.data, region.id.newdata[i])
           Wi <- W[region.id.temp, region.id.temp]
+          listwi <- mat2listw(Wi, row.names = region.id.temp, style = style) # re-normalize
+          Wi <- as(listwi, "CsparseMatrix")
           Xi <- rbind(Xs, Xo[i,])
           # compute TC1 for S and o units
           TC1i <- rep(NA, length(region.id.temp))
@@ -597,9 +608,14 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         region.id.newdata <- rownames(newdata)
         BPW1o <- rep(NA, nrow(newdata))
         W <- as(listw, "CsparseMatrix")
+        style <- listw$style
+        if (listw$style == "M")
+          warning("unknown weight style: a subset of listw is used without re-normalization")
         for (i in 1:nrow(newdata)) {
           region.id.temp <- c(region.id.data, region.id.newdata[i])
           Wi <- W[region.id.temp, region.id.temp]
+          listwi <- mat2listw(Wi, row.names = region.id.temp, style = style) # re-normalize
+          Wi <- as(listwi, "CsparseMatrix")
           Xi <- rbind(Xs, Xo[i,])
           is.data <- 1:length(ys)
           is.newdata <- length(region.id.temp)
@@ -626,10 +642,14 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, type="TS", all.data=
         region.id.newdata <- rownames(newdata)
         BPN1o <- rep(NA, nrow(newdata))
         W <- as(listw, "CsparseMatrix")
+        style <- listw$style
+        if (listw$style == "M")
+          warning("unknown weight style: a subset of listw is used without re-normalization")
         for (i in 1:nrow(newdata)) {
           region.id.temp <- c(region.id.data, region.id.newdata[i])
-          Wi <- W[region.id.temp, region.id.temp, drop=F]
-          listwi <- mat2listw(Wi)
+          Wi <- W[region.id.temp, region.id.temp]
+          listwi <- mat2listw(Wi, row.names = region.id.temp, style = style) # re-normalize
+          Wi <- as(listwi, "CsparseMatrix")
           Xi <- rbind(Xs, Xo[i,])
           # compute TC1 for S and o units
           TC1i <- rep(NA, length(region.id.temp))
