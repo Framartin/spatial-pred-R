@@ -106,17 +106,20 @@ Solutions are under questions.
 
 * Add license (GPL >= 2)
 * merged modifs from CRAN by R.Bivand
-* 
+* add BP1, BPW1 and BPN1 types
+* update and improve documentation
+* important bug fix in xx1 predictors: Wi need to be re-normalized in order to return the same results if we execute predict.sarlm() independantly or with multiple rows on newdata
+
 
 ## TODO
 
+* correct bug if newdata has only one row (with drop=F when subseting elements). Done?
 * work on splm ~~& sphet~~ (not enough scientific paper for sphet)
-* add BP1, BPW1 and BPN1 types
 * update predict.sarlm() documentation (include a summary table)
 * support all.data option for other predictors
 * add XWy from spatial-pred-r? rename it?
 * For leave-one-out predictors, if an out-of-sample unit has no neighbors, warns that non-spatial predictor will do the same more efficiently (?)
-* support listw2 for sac model
+* support listw2 for sac model (problem: not developed by Kelejian et al (2007))
 * add pred.se for KPx predictors
 * Read chapter on BLUP of the Encyclopedia of GIS, Springer (2007)
 
