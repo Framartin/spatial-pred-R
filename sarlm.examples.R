@@ -25,14 +25,15 @@ p4 <- predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, pred.type = "BP")
 # forecast
 p1 <- predict.sarlm(COL.lag.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "trend")
 p2 <- predict.sarlm(COL.lag.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "TC")
-
+p3 <- predict.sarlm(COL.lag.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "TS")
 p1 <- predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "trend")
 p2 <- predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "TC")
-
+p3A <- predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "TS")
+p3B <- predict.sarlm(COL.mix.eig, listw = lw, zero.policy = F, newdata = COL.OLD+1, pred.type = "TS", legacy.mixed = T)
+# becareful: TS for SEM model is just the trend
 
 
 # II - Out-of-sample predictions
-
 
 # decomposing data in in-sample and out-of-sample
 listw <- lw

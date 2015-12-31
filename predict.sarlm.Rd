@@ -26,7 +26,7 @@ trend, signal, and noise, or other types of predictors --- see references.
 for the data on which the model was fitted. Should have row names corresponding to region.id. If row names are exactly the same than the ones used for training, it uses in-sample predictors for forecast.  See \sQuote{Details}}
   \item{listw}{a \code{listw} object created for example by \code{nb2listw}. In the out-of-sample prediction case (ie. if newdata is not NULL), if \code{legacy.mixed=FALSE} or if \code{pred.type!="TS"}, it should include both in-sample and out-of-sample spatial units. In this case, if regions of the listw are not in the correct order, they are reordered.  See \sQuote{Details}}
   \item{pred.type}{predictor type --- default \dQuote{TS}, use decomposition into  
-trend, signal, and noise ; other types available depending on \code{newdata}. If \code{newdata=NULL} (in-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{TC} and \dQuote{BP} are available. If \code{newdata} is not NULL and its row names are the same than the \code{data} used to fit the model (forecast case), \dQuote{trend} and \dQuote{TC} are available. In other cases (out-of-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, \dQuote{TC}, \dQuote{BP}, \dQuote{BPW}, \dQuote{BPN}, \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1} and \dQuote{BPN1} are available.  See \sQuote{Details} and references}
+trend, signal, and noise ; other types available depending on \code{newdata}. If \code{newdata=NULL} (in-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{TC} and \dQuote{BP} are available. If \code{newdata} is not NULL and its row names are the same than the \code{data} used to fit the model (forecast case), \dQuote{TS}, \dQuote{trend} and \dQuote{TC} are available. In other cases (out-of-sample prediction), \dQuote{TS}, \dQuote{trend}, \dQuote{KP1}, \dQuote{KP2}, \dQuote{KP3}, \dQuote{KP4}, \dQuote{KP5}, \dQuote{TC}, \dQuote{BP}, \dQuote{BPW}, \dQuote{BPN}, \dQuote{TS1}, \dQuote{TC1}, \dQuote{BP1}, \dQuote{BPW1} and \dQuote{BPN1} are available.  See \sQuote{Details} and references}
   \item{all.data}{(only applies to \code{pred.type="TC"} and newdata is not NULL) default FALSE: return predictions only for newdata units, if TRUE return predictions for all data units.  See \sQuote{Details}}
   \item{zero.policy}{default NULL, use global option value; if TRUE assign zero to the lagged value of zones without 
 neighbours, if FALSE (default) assign NA - causing the function to 
@@ -43,7 +43,7 @@ terminate with an error}
   \item{...}{further arguments passed through}
 }
 \details{
-The function supports three types of prediction.  In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}).  Prevision is the computation of some in-sample predictors on the same spatial units than the ones used to fit the model, but with different observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model).  And out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (\code{newdata} has different row names).  For extensive definitions, see Thomas-Agnan et al. (2015). % add that warning if out-of-sample with newdata containing one in-sample spatial unit
+The function supports three types of prediction.  In-sample prediction is the computation of predictors on the data used to fit the model (\code{newdata=NULL}).  Prevision, also called forecast, is the computation of some predictors (\dQuote{trend}, in-sample \dQuote{TC} and out-of-sample \dQuote{TS}) on the same spatial units than the ones used to fit the model, but with different observations of the variables in the model (row names of \code{newdata} should have the same row names than the data frame used to fit the model).  And out-of-sample prediction is the computation of predictors on other spatial units than the ones used to fit the model (\code{newdata} has different row names).  For extensive definitions, see Thomas-Agnan et al. (2015). % add that warning if out-of-sample with newdata containing one in-sample spatial unit
 
 \code{pred.type} of predictors are available according to the model of \code{object} an to the type of prediction.  In the two following tables, \dQuote{yes} means that the predictor can be used with the model, \dQuote{no} means that \code{predict.sarlm()} will stop with an error, and \dQuote{yes*} means that the predictor is not designed for the specified model, but it can be used with \code{predict.sarlm()}.  In the last case, be careful with the computation of a inappropriate predictor.
 
@@ -167,7 +167,7 @@ COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw)
 COL.mix.eig <- lagsarlm(CRIME ~ INC + HOVAL, data=COL.OLD, lw,
   type="mixed")
 print(p1 <- predict(COL.mix.eig))
-print(p2 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS"))
+print(p2 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy.mixed = TRUE))
 AIC(COL.mix.eig)
 sqrt(deviance(COL.mix.eig)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(p1))^2)/length(COL.nb))
@@ -194,11 +194,11 @@ sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.lag.eig)))^2)/length(COL.nb))
 sqrt(sum((COL.OLD$CRIME - as.vector(predict(COL.lag.eig, newdata=COL.OLD,
   listw=lw, pred.type = "TS")))^2)/length(COL.nb))
 
-p3 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=FALSE)
+p3 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=FALSE, legacy.mixed = TRUE)
 all.equal(p2, p3, check.attributes=FALSE)
-p4 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=FALSE, power=TRUE)
+p4 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=FALSE, power=TRUE, legacy.mixed = TRUE)
 all.equal(p2, p4, check.attributes=FALSE)
-p5 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=TRUE, power=TRUE)
+p5 <- predict(COL.mix.eig, newdata=COL.OLD, listw=lw, pred.type = "TS", legacy=TRUE, power=TRUE, legacy.mixed = TRUE)
 all.equal(p2, p5, check.attributes=FALSE)
 }
 

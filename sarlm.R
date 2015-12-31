@@ -88,7 +88,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.
   # forecast case: newdata with the same names than data
   # use a sub-samble of in-sample predictors
   if (!is.null(newdata) && nrow(newdata) == length(ys) && rownames(newdata) == attr(ys, "names")) {
-    if (!pred.type %in% c("trend", "TC")) warning("no such predictor type for prevision")
+    if (!pred.type %in% c("trend", "TC", "TS"))
+      warning("no such predictor type for prevision")
     # DATA
     frm <- formula(object$call)
     mt <- delete.response(terms(frm, data=newdata)) # returns a terms object for the same model but with no response variable
@@ -106,6 +107,11 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.
         stop("mismatch between data and spatial weights")
       if (spChk && !chkIDs(Xs, listw))
         stop("Check of data and weights ID integrity failed")
+      if (pred.type == "TS" && legacy.mixed == FALSE) { # force legacy.mixed to allow the TS out-of-sample computation in the prevision case 
+        warning("only legacy.mixed=TRUE is supported for pred.type='TS' and mixed models. legacy.mixed is forced")
+        legacy.mixed <- TRUE
+      }
+      
       K <- ifelse(colnames(Xs)[1] == "(Intercept)", 2, 1)
       m <- ncol(Xs)
       # check if there are enough regressors
@@ -144,7 +150,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.
     
     tarXs <- tarys <- NULL
     trends <- Xs %*% B
-    newdata <- NULL
+    if (pred.type != "TS") # use the out-of-sample computation of TS (which only depends on Woo)
+      newdata <- NULL
   }
   
   
@@ -196,7 +203,8 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.
     attr(res, "region.id") <- as.vector(attr(ys, "names"))
   } else { # out-of-sample
     #CHECK
-    if (any(rownames(newdata) %in% attr(ys, "names"))) warning("some region.id are both in data and newdata")
+    if (any(rownames(newdata) %in% attr(ys, "names")) && !(pred.type == "TS" && nrow(newdata) == length(ys) && rownames(newdata) == attr(ys, "names"))) # no warning in the computation of TS in forecast
+      warning("some region.id are both in data and newdata")
     if (!(pred.type == "TS" && object$type == "error" && object$etype == "error") && !(pred.type == "trend" && (object$type != "mixed" && !(object$type == "error" && object$etype == "emixed")))) { # need of listw (ie. neither in the case of defaut predictor and SEM model, nor trend type without mixed models)
       if (is.null(listw) || !inherits(listw, "listw"))
         stop ("spatial weights list required")
@@ -345,7 +353,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.
           W <- as(listw, "CsparseMatrix")
           res <- c(as(powerWeights(W, rho=object$rho,
                                    X=trendo, order=order, tol=tol), "matrix"))
-        } else { # calcul de (I - rho*W)^-1 en inversant la matrice
+        } else {
           res <- c(invIrW(listw, object$rho) %*% trendo)
         }
         if (legacy) {
