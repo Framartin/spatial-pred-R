@@ -344,7 +344,7 @@ predict.sarlm <- function(object, newdata=NULL, listw=NULL, pred.type="TS", all.
           attr(res, "signal") <- signal
         } else if (object$etype == "emixed") { # WX + We
           signal <- rep(0, length(trendo))
-          res <- trend + signal
+          res <- trendo + signal
           attr(res, "trend") <- trendo
           attr(res, "signal") <- signal
         } else stop("unkown error model etype")
